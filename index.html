@@ -174,7 +174,15 @@ let charts = {};
 let currentProfil = 'all';
 let maxDateStr = "";
 
+// Normalisation basique pour l'affichage/recherche (garde les espaces)
 const normStr = s => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+
+// Normalisation "clé unique" (retire accents, ponctuation, espaces) pour le regroupement
+const cleanNameKey = s => s ? s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, '').toLowerCase() : "";
+
+// Dictionnaire POS indexé par clé normalisée
+const POS_NORM = {};
+for (const [k, v] of Object.entries(POS)) POS_NORM[cleanNameKey(k)] = v;
 
 function ttflScore(b) {
   const fgm = +b.fgm||0, fga = +b.fga||0;
@@ -193,10 +201,13 @@ function ttflScore(b) {
 function getDispoStatus(joueur, profil) {
   if (profil === 'all') return { ok: true, label: "Dispo", jours: 0 };
   const picks = SEED[profil] || [];
-  const jPicks = picks.filter(x => x.j === joueur).sort((a,b) => (b.iso||"").localeCompare(a.iso||""));
+  const keyTarget = cleanNameKey(joueur);
+  const jPicks = picks.filter(x => cleanNameKey(x.j) === keyTarget).sort((a,b) => (b.iso||"").localeCompare(a.iso||""));
+  
   if (!jPicks.length) return { ok: true, label: "Jamais pris", jours: 99 };
   const lastIso = jPicks[0].iso;
   const diff = (new Date(maxDateStr) - new Date(lastIso)) / (1000 * 60 * 60 * 24);
+  
   if (diff >= 30) return { ok: true, label: `Dispo (J+${Math.floor(diff)})`, jours: diff };
   return { ok: false, label: `Indispo (${Math.ceil(30 - diff)}j)`, jours: diff };
 }
@@ -264,21 +275,38 @@ async function chargerDonnees() {
 }
 
 /* ============================================================
-   AGRÉGATION BOX -> ALL0
+   AGRÉGATION BOX -> ALL0 (Corrigée pour ignorer les variations de noms)
    ============================================================ */
 function computeAggregates(box) {
   const byPlayer = {};
   for (const [iso, rows] of Object.entries(box)) {
     for (const b of rows) {
       if (!b.j || !b.mn) continue;
-      if (!byPlayer[b.j]) byPlayer[b.j] = { games: [], teams: {} };
-      byPlayer[b.j].games.push({ iso, ...b });
-      byPlayer[b.j].teams[b.t] = (byPlayer[b.j].teams[b.t] || 0) + 1;
+      
+      const rawName = b.j.trim();
+      if (!rawName) continue;
+      const key = cleanNameKey(rawName);
+      
+      if (!byPlayer[key]) {
+        byPlayer[key] = { 
+          games: [], 
+          teams: {},
+          displayName: rawName 
+        };
+      } else {
+        // On garde le nom le plus long pour l'affichage (souvent le plus complet)
+        if (rawName.length > byPlayer[key].displayName.length) {
+          byPlayer[key].displayName = rawName;
+        }
+      }
+      
+      byPlayer[key].games.push({ iso, ...b, j: rawName });
+      byPlayer[key].teams[b.t] = (byPlayer[key].teams[b.t] || 0) + 1;
     }
   }
 
   const out = [];
-  for (const [name, info] of Object.entries(byPlayer)) {
+  for (const [key, info] of Object.entries(byPlayer)) {
     const games = info.games.filter(g => g.mn > 0);
     if (games.length < 2) continue;
 
@@ -298,7 +326,7 @@ function computeAggregates(box) {
     const u25 = Math.round(100 * scores.filter(s => s >= 25).length / n);
     
     const team = Object.entries(info.teams).sort((a,b)=>b[1]-a[1])[0]?.[0] || "?";
-    const pos = POS[normStr(name)] || "?";
+    const pos = POS_NORM[key] || POS[info.displayName.toLowerCase()] || "?";
 
     const sum_scoring = games.reduce((a,g)=>a+(g.pts + g.fgm + g.tpm + g.ftm),0);
     const sum_pm = games.reduce((a,g)=>a+(g.ast + g.stl),0);
@@ -311,7 +339,7 @@ function computeAggregates(box) {
     const pct_hors = 100 - pct_sc;
 
     out.push({
-      j: name, t: team, p: pos,
+      j: info.displayName, t: team, p: pos,
       g: n, mn: +mnAvg.toFixed(1), m5: +m5.toFixed(1),
       s: +avg.toFixed(1), sd: +sd.toFixed(1),
       p20: +p20.toFixed(1), p50: +p50.toFixed(1), p80: +p80.toFixed(1),
@@ -902,7 +930,6 @@ function preparerBoxData(parsed) {
   document.getElementById('bgo').disabled = false;
 }
 
-// Drag & Drop / Click pour le fichier Excel/CSV
 document.getElementById('bdz').onclick = () => document.getElementById('bfi').click();
 document.getElementById('bfi').onchange = e => {
   if (e.target.files.length) lireFichierBox(e.target.files[0]);
@@ -952,7 +979,6 @@ function parserExcel(workbook) {
   });
 
   if (isMultiSheetByDate) {
-    // Format Basketball-Reference : un onglet par date
     let allRows = [];
     workbook.SheetNames.forEach(sheetName => {
       let iso = normaliserDate(sheetName);
@@ -1012,7 +1038,6 @@ function parserExcel(workbook) {
     return Object.keys(out).length ? out : null;
 
   } else {
-    // Format plat classique : on convertit en CSV et on utilise parserBox
     const sheet = workbook.Sheets[workbook.SheetNames[0]];
     const csv = XLSX.utils.sheet_to_csv(sheet, {FS: ','});
     return parserBox(csv);
