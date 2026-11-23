@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Dashboard TTFL interactif</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{--bg:#f4f5f8;--card:#fff;--tx:#12161d;--mut:#5b6472;--bd:#dfe3ea;--grid:#e6e9ef;--P0:#e8590c;--P1:#1c7ed6;--P2:#9c36b5;--P3:#0c8599;--P4:#c2255c;--P5:#5f3dc4;--ok:#2b8a3e;--bad:#e03131;--hl:#eef1f6;--cs:#f08c00;--cp:#4263eb;--cr:#0ca678;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0d1015;--card:#161a21;--tx:#eef1f6;--mut:#9aa4b2;--bd:#262c36;--grid:#262c36;--P0:#ff922b;--P1:#74c0fc;--P2:#da77f2;--P3:#3bc9db;--P4:#f783ac;--P5:#9775fa;--ok:#69db7c;--bad:#ff6b6b;--hl:#1d222b;--cs:#ffd43b;--cp:#91a7ff;--cr:#63e6be}}
+:root[data-theme="dark"]{--bg:#0d1015;--card:#161a21;--tx:#eef1f6;--mut:#9aa4b2;--bd:#262c36;--grid:#262c36;--P0:#ff922b;--P1:#74c0fc;--P2:#da77f2;--P3:#3bc9db;--P4:#f783ac;--P5:#9775fa;--ok:#69db7c;--bad:#ff6b6b;--hl:#1d222b;--cs:#ffd43b;--cp:#91a7ff;--cr:#63e6be}
+html{scroll-padding-top:calc(env(safe-area-inset-top,0px) + 64px)}*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
+.w{max-width:1200px;margin:0 auto;padding:16px}h1{font-size:26px;margin:8px 0 4px}.sub{color:var(--mut);margin:0;font-size:14px}
+nav{position:sticky;top:0;z-index:10;background:var(--bg);border-bottom:1px solid var(--bd);padding:10px 16px;display:flex;gap:8px;overflow-x:auto}
+nav button{flex:0 0 auto;font:600 15px system-ui,sans-serif;padding:9px 18px;border-radius:99px;border:2px solid var(--bd);background:var(--card);color:var(--tx);cursor:pointer}
+nav button.on{color:#fff;border-color:transparent;background:var(--c,var(--tx))}nav button.all.on{color:var(--bg)}nav button.imp{border-style:dashed;margin-left:auto}
+h2.sec{font-size:19px;margin:28px 0 12px;padding-left:10px;border-left:4px solid var(--tx)}
+.grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr))}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:16px;min-width:0}
+.card h3{font-size:15px;margin:0 0 4px}.card p.n{margin:0 0 10px;color:var(--mut);font-size:13px}
+.kp{border-top:5px solid var(--c)}.kp .nm{font-weight:700;font-size:17px;color:var(--c);margin-bottom:10px;display:flex;justify-content:space-between}
+.kt{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.kt b{display:block;font-size:26px;line-height:1.1}.kt span{color:var(--mut);font-size:13px}
+.solo{grid-column:1/-1}.solo .kt{grid-template-columns:repeat(auto-fit,minmax(130px,1fr))}.solo .kt b{font-size:32px}
+.cv{position:relative;height:290px}.cv.tall{height:440px}
+.tb{overflow-x:auto;max-height:520px;overflow-y:auto}table{border-collapse:collapse;width:100%;font-size:14px}
+th{position:sticky;top:0;background:var(--card);color:var(--mut);font-weight:600;text-align:left;padding:8px;border-bottom:2px solid var(--bd);white-space:nowrap}
+td{padding:7px 8px;border-bottom:1px solid var(--bd);white-space:nowrap}tr:hover td{background:var(--hl)}td.r{text-align:right;font-variant-numeric:tabular-nums}th.s{cursor:pointer}
+.chip{display:inline-block;min-width:38px;text-align:center;padding:1px 8px;border-radius:8px;font-weight:700;font-size:13px}
+.lo{background:color-mix(in srgb,var(--bad) 18%,transparent);color:var(--bad)}.hi{background:color-mix(in srgb,var(--ok) 20%,transparent);color:var(--ok)}.md{background:var(--hl)}
+.free{color:var(--ok);font-weight:600}.lk{color:var(--mut)}.dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px}
+.ctl{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;align-items:center}input,select,button.b,textarea{font:inherit;background:var(--card);color:var(--tx);border:1px solid var(--bd);border-radius:10px;padding:8px 10px}input.g{flex:1;min-width:200px}
+button.b{cursor:pointer;font-weight:600}button.pri{background:var(--tx);color:var(--bg);border-color:transparent}button.b:disabled{opacity:.4;cursor:default}button.x{border:0;background:none;color:var(--mut);cursor:pointer;font-size:15px}
+.drop{border:2px dashed var(--bd);border-radius:12px;padding:18px;text-align:center;color:var(--mut);cursor:pointer}.drop.ov{border-color:var(--tx);background:var(--hl)}
+.msg{margin:10px 0 0;padding:10px 12px;border-radius:10px;background:var(--hl);font-size:14px}.msg:empty{display:none}.msg.er{color:var(--bad)}
+.ft{display:flex;justify-content:space-between;align-items:baseline;gap:8px}.nm2{font-size:19px;font-weight:700}.big{font-size:34px;font-weight:700;line-height:1}.bar{display:flex;height:10px;border-radius:6px;overflow:hidden;margin:10px 0 4px}.bar i{display:block;height:100%}.r2{display:flex;justify-content:space-between;gap:8px;padding:5px 0;border-bottom:1px solid var(--bd);font-size:14px}.sw{display:inline-block;width:10px;height:10px;border-radius:3px;margin:0 4px 0 10px}.leg{font-size:13px;color:var(--mut);margin:6px 0 0}.leg i{display:inline-block;width:10px;height:10px;border-radius:2px;margin:0 4px 0 10px}.hlp{font-size:13px;color:var(--mut)}
+</style>
+</head>
+<body>
+<nav id="nav"></nav>
+<div class="w">
+  <h1>🏀 Dashboard TTFL</h1>
+  <p class="sub" id="sub"></p>
+  <div class="msg" id="stat"></div>
+
+  <h2 class="sec">Bilan</h2><div class="grid" id="kp"></div>
+
+  <h2 class="sec">Meilleurs picks disponibles par style</h2>
+  <p class="hlp" id="galn"></p><div class="grid" id="gal"></div>
+
+  <h2 class="sec">Évolution</h2>
+  <div class="grid">
+    <div class="card"><h3 id="t1"></h3><p class="n" id="n1"></p><div class="cv"><canvas id="c1"></canvas></div></div>
+    <div class="card"><h3>Cumul de points</h3><p class="n" id="n2"></p><div class="cv"><canvas id="c2"></canvas></div></div>
+  </div>
+
+  <h2 class="sec">Qualité des picks</h2>
+  <div class="grid">
+    <div class="card"><h3>Répartition des scores</h3><p class="n">Nombre de picks par tranche de score TTFL</p><div class="cv"><canvas id="c3"></canvas></div></div>
+    <div class="card"><h3>Malus vs score</h3><p class="n">Chaque point est un pick : plus le malus est haut, plus le score baisse</p><div class="cv"><canvas id="c4"></canvas></div></div>
+  </div>
+
+  <h2 class="sec">Historique des picks</h2>
+  <div class="card"><div class="tb"><table id="t"></table></div></div>
+
+  <h2 class="sec" id="imp">Importer ou modifier les données</h2>
+  <div class="grid">
+    <div class="card">
+      <h3>Importer un historique</h3>
+      <p class="n">Fichier TSV ou CSV avec les colonnes Date, Joueur, Pts, Reb, Ast, Stl, Blk, Ftm, Fgm, Fg3m, Malus, Score.</p>
+      <div class="ctl"><select id="ip"></select><input id="in" placeholder="Nom du nouveau profil" style="display:none"></div>
+      <div class="ctl">
+        <label><input type="radio" name="md" value="m" checked> Fusionner</label>
+        <label><input type="radio" name="md" value="r"> Remplacer</label>
+      </div>
+      <div class="drop" id="dz">Glisse un fichier ici ou clique<input type="file" id="fi" accept=".md,.tsv,.csv,.txt,text/*" hidden></div>
+      <div class="msg" id="pv"></div>
+      <div class="ctl" style="margin-top:10px"><button class="b pri" id="go" disabled>Importer</button></div>
+    </div>
+    <div class="card">
+      <h3>Ajouter un pick à la main</h3>
+      <div class="ctl"><input type="date" id="ad"><input class="g" id="aj" placeholder="Joueur"></div>
+      <div class="ctl">
+        <input id="as" type="number" placeholder="Score" style="width:100px">
+        <input id="am" type="number" placeholder="Malus" style="width:100px">
+        <input id="ap" type="number" placeholder="Pts" style="width:80px">
+        <input id="ar" type="number" placeholder="Reb" style="width:80px">
+        <input id="aa" type="number" placeholder="Ast" style="width:80px">
+      </div>
+      <div class="ctl">
+        <button class="b pri" id="ab">Ajouter</button>
+        <button class="b" id="rs">Réinitialiser le profil</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:14px">
+    <h3>Importer des boxscores</h3>
+    <p class="n">CSV (Date, Joueur, Equipe, Adversaire, Domicile, Minutes, FGM, FGA, 3PM, 3PA, FTM, FTA, REB, AST, STL, BLK, TOV, PTS, Statut) ou fichier XLSX.</p>
+    <div class="ctl"><textarea id="bta" rows="3" class="g" placeholder="Colle ici les lignes CSV avec en-tête"></textarea><button class="b" id="bpa">Analyser</button></div>
+    <div class="msg" id="bpv"></div>
+    <div class="ctl"><button class="b pri" id="bgo" disabled>Importer</button><select id="bds"></select><button class="b" id="bdel">Suppr. jour</button></div>
+  </div>
+
+  <div class="card" style="margin-top:14px">
+    <h3>Exporter pour la version publique</h3>
+    <p class="n">Télécharge un <b>data.json</b> à déposer à la racine du dépôt.</p>
+    <div class="ctl"><button class="b pri" id="ex">Exporter data.json</button></div>
+    <p class="hlp" id="exn"></p>
+  </div>
+
+  <h2 class="sec">Joueurs</h2>
+  <div class="grid">
+    <div class="card"><h3 id="t5"></h3><p class="n" id="n5">TTFL moyen sur les 5 derniers matchs</p><div class="cv tall"><canvas id="c5"></canvas></div></div>
+    <div class="card"><h3>Régularité</h3><p class="n">Forte moyenne et peu de variations = en haut à gauche.</p><div class="cv tall"><canvas id="c6"></canvas></div></div>
+  </div>
+
+  <h2 class="sec">Risque et rôle des joueurs</h2>
+  <p class="hlp">Chaque point est un joueur éligible (≥ 3 matchs, ≥ 15 min).</p>
+  <div class="grid" style="margin-top:10px">
+    <div class="card"><h3>Fourchette de score</h3><p class="n">P20–P80, médiane, moyenne 5 derniers.</p><div class="cv tall"><canvas id="c7"></canvas></div></div>
+    <div class="card"><h3>Sécurité et ambition</h3><p class="n">% au-dessus de 35 vs moyenne.</p><div class="cv tall"><canvas id="c8"></canvas></div></div>
+    <div class="card"><h3>Rendement par minute</h3><p class="n">Score par minute vs minutes moyennes.</p><div class="cv tall"><canvas id="c9"></canvas></div></div>
+    <div class="card"><h3>Régularité vs volume</h3><p class="n">Écart-type vs moyenne.</p><div class="cv tall"><canvas id="c10"></canvas></div></div>
+  </div>
+
+  <h2 class="sec">Tableau des joueurs</h2>
+  <div class="card" style="margin-top:14px">
+    <div class="ctl">
+      <input class="g" id="q" placeholder="Rechercher un joueur ou une équipe">
+      <select id="tv"><option value="base">Vue : Forme</option><option value="risk">Vue : Risque</option></select>
+      <select id="fl"></select>
+    </div>
+    <div class="tb"><table id="pt"></table></div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   POSITIONS
+   ============================================================ */
+const POS = {"luka doncic":"PG","anthony edwards":"SG","stephen curry":"PG","shai gilgeous-alexander":"PG","victor wembanyama":"C","giannis antetokounmpo":"PF","jayson tatum":"SF","tyrese maxey":"PG","ty jerome":"PG","jalen brunson":"PG","darius acuff jr.":"PG","devin booker":"SG","austin reaves":"SG","paolo banchero":"PF","jamal murray":"PG","cooper flagg":"SF","donovan mitchell":"SG","scottie barnes":"PF","anthony davis":"PF","cade cunningham":"PG","nikola jokic":"C","deni avdija":"SF","jaylen brown":"SF","nickeil alexander-walker":"SG","tyrese haliburton":"PG","rj barrett":"SF","michael porter jr.":"SF","alperen sengun":"C","tyler herro":"SG","kyrie irving":"PG","zach lavine":"SG","pascal siakam":"PF","darius garland":"PG","yaxel lendeborg":"SF","keyonte george":"PG","zion williamson":"PF","karl-anthony towns":"C","kevin durant":"SF","franz wagner":"SF","brandon miller":"SF","paul george":"PF","julius randle":"PF","jalen johnson":"PF","kawhi leonard":"SF","damian lillard":"PG","norman powell":"SG","caleb wilson":"PF","ajay mitchell":"SG","bam adebayo":"C","kyshawn george":"SG","evan mobley":"PF","trae young":"PG","lamelo ball":"PG","duncan robinson":"SF","ayo dosunmu":"SG","dylan harper":"SG","lauri markkanen":"PF","joel embiid":"C","andrew nembhard":"SG","desmond bane":"SG","immanuel quickley":"PG","jabari smith jr.":"PF","jaden mcdaniels":"PF","miles bridges":"PF","dillon brooks":"SF","naz reid":"C","og anunoby":"PF","jaren jackson jr.":"C","davion mitchell":"PG","saddiq bey":"SF","aj dybantsa":"SF","jeremiah fears":"PG","ja morant":"PG","brandin podziemski":"SG","anthony black":"PG","james harden":"PG","cameron boozer":"PF","lebron james":"PF","trey murphy iii":"SF","amen thompson":"SF","stephon castle":"SG","domantas sabonis":"C","jaime jaquez jr.":"SF","tristan da silva":"SF","dejounte murray":"PG","aaron wiggins":"SG","wendell carter jr.":"C","darryn peterson":"SG","p.j. washington":"PF","klay thompson":"SF","rui hachimura":"PF","walker kessler":"C","brook lopez":"C","grayson allen":"SG","obi toppin":"PF","cedric coward":"SG","de'aaron fox":"PG","jalen williams":"SF","matas buzelis":"SF","christian braun":"SG","onyeka okongwu":"C","fred vanvleet":"PG","jarrett allen":"C","vj edgecombe":"SG","toumani camara":"PF","de'andre hunter":"SF","jalen duren":"C","jrue holiday":"PG","spencer jones":"SF","mikel brown jr.":"PG","cj mccollum":"PG","nolan traore":"PG","derrick white":"PG","payton pritchard":"PG","jalen green":"SG","aaron gordon":"PF","jonathan kuminga":"SF","meleek thomas":"SG","keaton wagler":"SG","paul reed":"C","jared mccain":"SG","aaron nesmith":"SF","derik queen":"C","chet holmgren":"PF","ace bailey":"SF","donovan clingan":"C","naji marshall":"SF","isaiah stewart":"C","devin vassell":"SG","daniss jenkins":"PG","jalen smith":"C","kyle kuzma":"PF","peyton watson":"SF","derrick jones jr.":"SF","pelle larsson":"SG","terrence shannon jr.":"SG","brandon williams":"PG","ziaire williams":"SF","ja'kobe walter":"SG","cameron johnson":"PF","demar derozan":"SF","collin murray-boyles":"PF","ryan rollins":"PG","jaylen wells":"SG","alex sarr":"C","brayden burries":"SG","precious achiuwa":"C","moritz wagner":"C","josh giddey":"PG","tre jones":"PG","dennis schroder":"PG","santi aldama":"PF","julian champagnie":"SF","quenton jackson":"PG","reed sheppard":"PG","kobe sanders":"SG","dyson daniels":"SF","luguentz dort":"PF","daniel gafford":"C","danny wolf":"C","jerami grant":"PF","tre johnson":"SG","karlo matkovic":"PF","yves missi":"C","neemias queta":"C","collin sexton":"SG","ausar thompson":"SF","tari eason":"PF","de'anthony melton":"SG","landry shamet":"SG","john collins":"PF","kris dunn":"SG","marcus smart":"PG","anfernee simons":"SG","max strus":"SF","moussa diabate":"C","cam spencer":"SG","josh hart":"SF","jaxson hayes":"C","isaiah jackson":"C","sandro mamukelashvili":"C","malik monk":"SG","kel'el ware":"C","kingston flemings":"PG","bones hyland":"PG","kelly oubre jr.":"SF","javon small":"PG","scoot henderson":"PG","mario hezonja":"PF","kevin huerter":"SG","zach edey":"C","luke kennard":"SG","andrew wiggins":"SF","thomas bryant":"C","keldon johnson":"PF","georges niang":"PF","jamison battle":"SF","aday mara":"C","quentin grimes":"SG","keegan murray":"PF","jalen suggs":"PG","nate ament":"SF","egor demin":"PG","rudy gobert":"C","jordan goodwin":"PG","jaylon tyson":"SF","mo bamba":"C","sam hauser":"PF","corey kispert":"SF","sam merrill":"SG","morez johnson jr.":"C","bennett stirtz":"PG","ivica zubac":"C","a.j. green":"SG","day'ron sharpe":"C","trevon brazile":"PF","gg jackson ii":"PF","khaman maluach":"C","zaccharie risacher":"SF","jarace walker":"PF","robert williams":"C","justin champagnie":"SF","walter clayton":"PG","isaiah joe":"SG","brice sensabaugh":"SF","jamal cain":"SF","bilal coulibaly":"SF","trendon watford":"PF","charles bassey":"C","jay huff":"C","leonard miller":"SF","jakob poeltl":"C","matisse thybulle":"SF","myles turner":"C","alex caruso":"SG","gradey dick":"SG","luka garza":"C","bobby portis":"PF","isaiah hartenstein":"C","collin gillespie":"PG","kenrich williams":"PF","miles mcbride":"SG","mikal bridges":"SF","gui santos":"PF","jordan clarkson":"SG","oso ighodaro":"C","kasparas jakucionis":"SG","trey lyles":"PF","scotty pippen jr.":"PG","mitchell robinson":"C","jock landale":"C","jake laravia":"PF","alijah martin":"SG","cason wallace":"SG","isaiah collier":"PG","max christie":"SG","sidy cissoko":"SF","javonte green":"SG","tidjane salaun":"PF","marvin bagley iii":"PF","bryce hopkins":"SF","deandre jordan":"C","bennedict mathurin":"SF","t.j. mcconnell":"PG","jordan poole":"SG","tyrese proctor":"PG","jamal shead":"PG","coby white":"PG","jase richardson":"SG","marcus sasser":"PG","baylor scheierman":"SF","leaky black":"SF","sion james":"SG","isaac okoro":"SG","kentavious caldwell-pope":"SF","dylan cardwell":"C","bub carrington":"PG","zuby ejiofor":"PF","ron holland":"SF","quinten post":"C","joan beringer":"C","ryan dunn":"SF","buddy hield":"SG","herbert jones":"SF","chris youngblood":"SG","patrick williams":"PF","deandre ayton":"C","sergio de larrea":"PG","noa essengue":"PF","jabari walker":"PF","harrison barnes":"PF","will richard":"SG","bogdan bogdanovic":"SG","noah clowney":"PF","andre drummond":"C","al horford":"C","graham ike":"C","dalton knecht":"SF","gary payton ii":"SG","john tonje":"SG","emanuel sharp":"SG","chaney johnson":"SF","kobe brown":"PF","jaylen clark":"SG","yang hansen":"C","larry nance jr.":"PF","royce o'neale":"SF","tim hardaway jr.":"SG","jaylin sellers":"PG","ryan kalkbrenner":"C","josh minott":"SF","keon ellis":"SG","allen graves":"PF","chaz lanier":"SG","micah peavy":"SG","braden smith":"PG","caleb martin":"SG","ryan conwell":"SG","steven adams":"C","jevon carter":"PG","nic claxton":"C","rayj dennis":"PG","riley minix":"SF","jordan walsh":"PF","cam whitmore":"SF","josh green":"SG","hugo gonzalez":"SG","jalen slawson":"SF","goga bitadze":"C","asa newell":"PF","micah potter":"C","baba miller":"SF","zeke nnaji":"PF","jordan hawkins":"SG","nick martinelli":"SF","josh okogie":"SG","duop reath":"C","svi mykhailiuk":"SF","clint capela":"C","luke kornet":"C","dean wade":"PF","ousmane dieng":"C","colin castleton":"C","mike conley":"PG","trayce jackson-davis":"C","kon knueppel":"SF","liam mcneeley":"SF","jonathan mogbo":"PF","ryan nembhard":"PG","daeqwon plowden":"SG","olivier-maxence prosper":"PF","ben sheppard":"SG","hannes steinbach":"PF","adou thiero":"SF","gary trent jr.":"SG","draymond green":"PF","tyus jones":"PG","jaylin williams":"C","christian anderson jr.":"PG","oscar tshiebwe":"C","chris cenac jr.":"PF","vit krejci":"PG","carter bryant":"PF","lj cryer":"PG","kyle filipowski":"C","jose alvarado":"PG","mohamed diawara":"SF","ja'kobi gillespie":"PG","taylor hendricks":"PF","labaron philon jr.":"PG","dru smith":"SG","dailyn swain":"SG","jett howard":"SF","nikola jovic":"PF","khris middleton":"SF","nikola vucevic":"C","isaiah crawford":"SF","josh dix":"SG","tristan enaruna":"SF","adem bona":"C","tyler kolek":"PG","tobe awaka":"PF","jamaree bouyea":"PG","jaden bradley":"PG","branden carlson":"C","pacome dadiet":"SG","jayson kent":"SF","bogoljub markovic":"PF","taurean prince":"SF","zyon pullin":"SG","tarris reed jr.":"C","will riley":"SF","rayan rupert":"SF","ben saraf":"SG","bruce thornton":"PG","james wiseman":"C","jalen pickett":"SG","moussa cisse":"C","nique clifford":"SG","ron harper jr.":"SF","kevon looney":"C","zach collins":"C","tobi lawal":"PF","kris murray":"SF","ebuka okorie":"PG","koa peat":"PF","brooks barnhizer":"SG","cam christie":"SG","alex karaban":"SF","bryce mcgowens":"SG","nick richards":"C","alpha diallo":"SF","justin edwards":"SF","jaden hardy":"SG","karim lopez":"SF","jarred vanderbilt":"PF","kyle anderson":"SF","tony bradley":"C","carson cooper":"PF","dorian finney-smith":"PF","daron holmes":"PF","aj johnson":"SG","david jones garcia":"SF","tre mann":"PG","chris manon":"SG","jordan mclaughlin":"PG","julian reese":"C","pat spencer":"PG","dalen terry":"SG","blake wesley":"SG","tolu smith":"PF","simone fontecchio":"SF","myron gardner":"SF","bronny james":"SG","alex morales":"PG","isaac jones":"PF","jahmai mashack":"SG","drake powell":"SG","craig porter jr.":"PG","rasheer fleming":"PF","anthony gill":"PF","felix okpara":"C","malevy leons":"SF","terance mann":"SG","jericho sims":"C","jaden akins":"SG","reece beekman":"PG","maliq brown":"PF","cameron carr":"SG","isaiah evans":"SG","tacko fall":"C","pj hall":"C","elijah harkless":"SG","joshua jefferson":"PF","caleb love":"SG","lawson lovering":"C","dillon mitchell":"SF","norchad omier":"PF","jae'sean tate":"SF","cody williams":"SG","rocco zikarsky":"C"};
+
+/* ============================================================
+   ÉTAT
+   ============================================================ */
+let SEED = {};
+let BOX  = {};
+let ALL0 = [];
+let PL   = [];
+let charts = {};
+
+/* ============================================================
+   FORMULE TTFL OFFICIELLE  (corrigée)
+   (PTS + REB + AST + STL + BLK + FGM + 3PM + FTM)
+   − (TOV + (FGA−FGM) + (3PA−3PM) + (FTA−FTM))
+   ============================================================ */
+function ttflScore(b) {
+  const fgm = +b.fgm||0, fga = +b.fga||0;
+  const tpm = +b.tpm||0, tpa = +b.tpa||0;
+  const ftm = +b.ftm||0, fta = +b.fta||0;
+  const positif = (+b.pts||0) + (+b.reb||0) + (+b.ast||0)
+                + (+b.stl||0) + (+b.blk||0)
+                + fgm + tpm + ftm;
+  const negatif = (+b.tov||0) + (fga - fgm) + (tpa - tpm) + (fta - ftm);
+  return positif - negatif;
+}
+
+/* ============================================================
+   CHARGEMENT
+   ============================================================ */
+async function chargerDonnees() {
+  const stat = document.getElementById('stat');
+  try {
+    const r = await fetch('./data.json', { cache: 'no-cache' });
+    if (!r.ok) throw new Error(`HTTP ${r.status} — data.json introuvable à la racine du dépôt`);
+    const data = await r.json();
+
+    SEED = data.profiles || data.SEED || data.profils || {};
+    const rawBox = data.box || data.BOX || data.boxscores || {};
+
+    BOX = {};
+    for (const [iso, rows] of Object.entries(rawBox)) {
+      BOX[iso] = rows.map(a => ({
+        j: a[0], t: a[1], opp: a[2], mn: +a[3]||0,
+        fgm: +a[4]||0, fga: +a[5]||0, tpm: +a[6]||0, tpa: +a[7]||0,
+        ftm: +a[8]||0, fta: +a[9]||0, reb: +a[10]||0, ast: +a[11]||0,
+        stl: +a[12]||0, blk: +a[13]||0, tov: +a[14]||0, pts: +a[15]||0,
+        status: a[16]||""
+      }));
+    }
+
+    ALL0 = data.ALL0 || computeAggregates(BOX);
+
+    PL = [];
+    for (const [profil, picks] of Object.entries(SEED)) {
+      for (const p of picks) PL.push({ ...p, profil });
+    }
+    PL.sort((a,b) => (a.iso||"").localeCompare(b.iso||""));
+
+    const nProfils = Object.keys(SEED).length;
+    const nBox = Object.keys(BOX).length;
+    stat.textContent = `✓ ${nProfils} profil(s), ${ALL0.length} joueur(s), ${nBox} jour(s) de boxscores, ${PL.length} pick(s).`;
+    stat.classList.remove('er');
+
+    renderAll();
+  } catch (err) {
+    stat.textContent = `⚠️ ${err.message}`;
+    stat.classList.add('er');
+    console.error('[TTFL]', err);
+  }
+}
+
+/* ============================================================
+   AGRÉGATION BOX -> ALL0
+   ============================================================ */
+function computeAggregates(box) {
+  const byPlayer = {};
+  for (const [iso, rows] of Object.entries(box)) {
+    for (const b of rows) {
+      if (!b.j || !b.mn) continue;
+      if (!byPlayer[b.j]) byPlayer[b.j] = { games: [], teams: {} };
+      byPlayer[b.j].games.push({ iso, ...b });
+      byPlayer[b.j].teams[b.t] = (byPlayer[b.j].teams[b.t] || 0) + 1;
+    }
+  }
+
+  const out = [];
+  for (const [name, info] of Object.entries(byPlayer)) {
+    const games = info.games.filter(g => g.mn > 0);
+    if (games.length < 2) continue;
+
+    const scores = games.map(ttflScore).sort((a,b)=>a-b);
+    const n = scores.length;
+    const avg = scores.reduce((a,b)=>a+b,0) / n;
+    const sd  = Math.sqrt(scores.reduce((s,x)=>s+(x-avg)**2, 0) / n);
+    const mnAvg = games.reduce((a,g)=>a+g.mn,0) / games.length;
+    const last5 = games.slice(-5).map(ttflScore);
+    const m5 = last5.reduce((a,b)=>a+b,0) / last5.length;
+    const p20 = scores[Math.floor(n*0.2)] ?? scores[0];
+    const p50 = scores[Math.floor(n*0.5)] ?? scores[0];
+    const p80 = scores[Math.floor(n*0.8)] ?? scores[n-1];
+    const u35 = Math.round(100 * scores.filter(s => s >= 35).length / n);
+    const team = Object.entries(info.teams).sort((a,b)=>b[1]-a[1])[0]?.[0] || "?";
+    const pos = POS[name.toLowerCase()] || "?";
+
+    out.push({
+      j: name, t: team, p: pos,
+      g: n, mn: +mnAvg.toFixed(1), m5: +m5.toFixed(1),
+      s: +avg.toFixed(1), sd: +sd.toFixed(1),
+      p20: +p20.toFixed(1), p50: +p50.toFixed(1), p80: +p80.toFixed(1),
+      u35, tpm: +(avg/Math.max(1,mnAvg)).toFixed(2),
+      rb: +(games.reduce((a,g)=>a+g.reb,0)/n).toFixed(1),
+      sc: +(games.reduce((a,g)=>a+g.pts,0)/n).toFixed(1)
+    });
+  }
+  return out.sort((a,b) => b.s - a.s);
+}
+
+/* ============================================================
+   RENDU
+   ============================================================ */
+function renderAll() {
+  renderNav();
+  renderKPI();
+  renderGalerie();
+  renderCharts();
+  renderPicksTable();
+  renderPlayersTable();
+  remplirSelecteurs();
+}
+
+const C_PROFILS = ["--P0","--P1","--P2","--P3","--P4","--P5"];
+function renderNav() {
+  const nav = document.getElementById('nav');
+  nav.innerHTML = '';
+  const profils = Object.keys(SEED);
+  profils.forEach((p, i) => {
+    const b = document.createElement('button');
+    b.textContent = p;
+    b.style.setProperty('--c', `var(${C_PROFILS[i % 6]})`);
+    b.onclick = () => {
+      document.querySelectorAll('#nav button').forEach(x => x.classList.remove('on'));
+      b.classList.add('on');
+      renderKPI(p);
+      renderCharts(p);
+      renderPicksTable(p);
+    };
+    nav.appendChild(b);
+  });
+  const all = document.createElement('button');
+  all.textContent = 'Tous';
+  all.className = 'all';
+  all.onclick = () => {
+    document.querySelectorAll('#nav button').forEach(x => x.classList.remove('on'));
+    all.classList.add('on');
+    renderKPI();
+    renderCharts();
+    renderPicksTable();
+  };
+  all.click();
+  const imp = document.createElement('button');
+  imp.textContent = '+ Importer';
+  imp.className = 'imp';
+  imp.onclick = () => document.getElementById('imp').scrollIntoView({behavior:'smooth'});
+  nav.appendChild(imp);
+}
+
+function renderKPI(filtre) {
+  const kp = document.getElementById('kp');
+  kp.innerHTML = '';
+  const profils = filtre ? [filtre] : Object.keys(SEED);
+
+  profils.forEach((p, i) => {
+    const picks = SEED[p] || [];
+    const valides = picks.filter(x => x.s !== undefined);
+    if (!valides.length) return;
+
+    const total = valides.reduce((a,x) => a + (x.s||0), 0);
+    const moy = total / valides.length;
+    const best = Math.max(...valides.map(x => x.s));
+    const pires = Math.min(...valides.map(x => x.s));
+    const malusMoy = valides.reduce((a,x)=>a+(x.m||0),0) / valides.length;
+    const nb35 = valides.filter(x => x.s >= 35).length;
+    const taux35 = Math.round(100 * nb35 / valides.length);
+
+    const card = document.createElement('div');
+    card.className = 'card kp';
+    card.style.setProperty('--c', `var(${C_PROFILS[i % 6]})`);
+    card.innerHTML = `
+      <div class="nm"><span>${p}</span><span>${valides.length} picks</span></div>
+      <div class="kt">
+        <div><b>${total.toFixed(1)}</b><span>Total</span></div>
+        <div><b>${moy.toFixed(1)}</b><span>Moyenne</span></div>
+        <div><b>${best}</b><span>Meilleur</span></div>
+        <div><b>${pires}</b><span>Pire</span></div>
+        <div><b>${malusMoy.toFixed(1)}</b><span>Malus moy.</span></div>
+        <div><b>${taux35}%</b><span>≥ 35 pts</span></div>
+      </div>`;
+    kp.appendChild(card);
+  });
+}
+
+function renderGalerie() {
+  const gal = document.getElementById('gal');
+  const galn = document.getElementById('galn');
+  gal.innerHTML = '';
+  if (!ALL0.length) {
+    galn.textContent = "Aucun boxscore exploitable pour calculer les meilleurs picks.";
+    return;
+  }
+  const elig = ALL0.filter(x => x.g >= 3);
+  const styles = [
+    { titre: "Réguliers",        tri: x => -x.s },
+    { titre: "Explosifs",        tri: x => -x.p80 },
+    { titre: "Valeurs sûres",    tri: x => x.sd },
+    { titre: "Bon marché (min)", tri: x => x.mn },
+    { titre: "Forme récente",    tri: x => -x.m5 },
+    { titre: "Volumes rebonds",  tri: x => -x.rb }
+  ];
+  styles.forEach(st => {
+    const top = [...elig].sort((a,b) => st.tri(a) - st.tri(b)).slice(0, 5);
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.innerHTML = `<h3>${st.titre}</h3><p class="n">Top 5</p>` +
+      top.map((p, idx) =>
+        `<div class="r2"><span>${idx+1}. <span class="dot" style="background:var(--${'P'+(idx%6)})"></span>${p.j} <span class="lk">(${p.t})</span></span><span>${p.s.toFixed(1)}</span></div>`
+      ).join('');
+    gal.appendChild(card);
+  });
+  galn.textContent = `Basé sur ${elig.length} joueurs éligibles (≥ 3 matchs).`;
+}
+
+function destroyChart(id) { if (charts[id]) { charts[id].destroy(); delete charts[id]; } }
+
+function renderCharts(filtre) {
+  const profils = filtre ? [filtre] : Object.keys(SEED);
+
+  destroyChart('c1');
+  const datasets1 = profils.map((p, i) => {
+    const picks = (SEED[p]||[]).filter(x => x.s !== undefined).sort((a,b)=>a.iso.localeCompare(b.iso));
+    return {
+      label: p, borderColor: getCss(`--P${i%6}`),
+      data: picks.map(x => ({ x: x.iso, y: x.s })), tension: .3, pointRadius: 2
+    };
+  });
+  charts.c1 = new Chart(document.getElementById('c1'), {
+    type:'line', data:{datasets:datasets1},
+    options:{responsive:true, maintainAspectRatio:false,
+      scales:{x:{type:'category'}, y:{beginAtZero:true}},
+      plugins:{legend:{position:'bottom'}}
+    }
+  });
+  document.getElementById('t1').textContent = "Score pick par pick";
+  document.getElementById('n1').textContent = "Chronologie des scores TTFL";
+
+  destroyChart('c2');
+  const datasets2 = profils.map((p, i) => {
+    const picks = (SEED[p]||[]).filter(x => x.s !== undefined).sort((a,b)=>a.iso.localeCompare(b.iso));
+    let c = 0;
+    return {
+      label: p, borderColor: getCss(`--P${i%6}`),
+      data: picks.map(x => ({ x: x.iso, y: (c += x.s||0) })), tension: .3, pointRadius: 2
+    };
+  });
+  charts.c2 = new Chart(document.getElementById('c2'), {
+    type:'line', data:{datasets:datasets2},
+    options:{responsive:true, maintainAspectRatio:false,
+      scales:{x:{type:'category'}, y:{beginAtZero:true}},
+      plugins:{legend:{position:'bottom'}}
+    }
+  });
+  document.getElementById('n2').textContent = "Cumul des points par profil";
+
+  destroyChart('c3');
+  const allPicks = profils.flatMap(p => (SEED[p]||[]).filter(x => x.s !== undefined));
+  const bins = [ [0,10],[10,20],[20,30],[30,40],[40,50],[50,60],[60,70],[70,100] ];
+  const counts = bins.map(([a,b]) => allPicks.filter(x => x.s >= a && x.s < b).length);
+  charts.c3 = new Chart(document.getElementById('c3'), {
+    type:'bar',
+    data:{labels: bins.map(([a,b]) => `${a}–${b}`),
+          datasets:[{ label:'Picks', data: counts,
+            backgroundColor: getCss('--P1') }]},
+    options:{responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true}}
+    }
+  });
+
+  destroyChart('c4');
+  charts.c4 = new Chart(document.getElementById('c4'), {
+    type:'scatter',
+    data:{datasets:profils.map((p,i) => ({
+      label: p, backgroundColor: getCss(`--P${i%6}`),
+      data: (SEED[p]||[]).filter(x => x.s !== undefined).map(x => ({x:x.m||0, y:x.s}))
+    }))},
+    options:{responsive:true, maintainAspectRatio:false,
+      scales:{x:{title:{display:true,text:'Malus'}}, y:{title:{display:true,text:'Score'}}},
+      plugins:{legend:{position:'bottom'}}
+    }
+  });
+
+  destroyChart('c5');
+  const topM5 = [...ALL0].sort((a,b)=>b.m5-a.m5).slice(0,15);
+  charts.c5 = new Chart(document.getElementById('c5'), {
+    type:'bar',
+    data:{ labels: topM5.map(x=>x.j),
+      datasets:[{ data: topM5.map(x=>x.m5), backgroundColor: getCss('--P2') }]},
+    options:{indexAxis:'y', responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false}}}
+  });
+  document.getElementById('t5').textContent = "Top 15 forme récente";
+
+  destroyChart('c6');
+  charts.c6 = new Chart(document.getElementById('c6'), {
+    type:'scatter',
+    data:{datasets:[{
+      label:'Joueurs', backgroundColor: getCss('--P3'),
+      data: ALL0.filter(x=>x.g>=3).map(x=>({x:x.sd, y:x.s, j:x.j}))
+    }]},
+    options:{responsive:true, maintainAspectRatio:false,
+      scales:{x:{title:{display:true,text:'Écart-type'}}, y:{title:{display:true,text:'Moyenne'}}},
+      plugins:{legend:{display:false}, tooltip:{callbacks:{label: c => `${c.raw.j}: ${c.raw.y.toFixed(1)} (σ=${c.raw.x.toFixed(1)})`}}}
+    }
+  });
+
+  destroyChart('c7');
+  const top20 = [...ALL0].sort((a,b)=>b.s-a.s).slice(0,20);
+  charts.c7 = new Chart(document.getElementById('c7'), {
+    type:'bar',
+    data:{ labels: top20.map(x=>x.j),
+      datasets:[
+        { label:'P20', data: top20.map(x=>x.p20), backgroundColor: getCss('--P3') },
+        { label:'P50', data: top20.map(x=>x.p50), backgroundColor: getCss('--P1') },
+        { label:'P80', data: top20.map(x=>x.p80), backgroundColor: getCss('--P0') }
+      ]},
+    options:{indexAxis:'y', responsive:true, maintainAspectRatio:false,
+      scales:{x:{beginAtZero:true}}}
+  });
+
+  destroyChart('c8');
+  charts.c8 = new Chart(document.getElementById('c8'), {
+    type:'scatter',
+    data:{datasets:[{
+      label:'Joueurs', backgroundColor: getCss('--P0'),
+      data: ALL0.filter(x=>x.g>=3).map(x=>({x:x.u35, y:x.s, j:x.j}))
+    }]},
+    options:{responsive:true, maintainAspectRatio:false,
+      scales:{x:{title:{display:true,text:'% matchs ≥ 35'}}, y:{title:{display:true,text:'Moyenne'}}},
+      plugins:{legend:{display:false}, tooltip:{callbacks:{label: c => `${c.raw.j}: ${c.raw.y.toFixed(1)}`}}}
+    }
+  });
+
+  destroyChart('c9');
+  charts.c9 = new Chart(document.getElementById('c9'), {
+    type:'scatter',
+    data:{datasets:[{
+      label:'Joueurs', backgroundColor: getCss('--P4'),
+      data: ALL0.filter(x=>x.g>=3).map(x=>({x:x.mn, y:x.tpm, j:x.j}))
+    }]},
+    options:{responsive:true, maintainAspectRatio:false,
+      scales:{x:{title:{display:true,text:'Minutes moy.'}}, y:{title:{display:true,text:'Score / minute'}}},
+      plugins:{legend:{display:false}, tooltip:{callbacks:{label: c => `${c.raw.j}: ${c.raw.y.toFixed(2)}`}}}
+    }
+  });
+
+  destroyChart('c10');
+  charts.c10 = new Chart(document.getElementById('c10'), {
+    type:'scatter',
+    data:{datasets:[{
+      label:'Joueurs', backgroundColor: getCss('--P5'),
+      data: ALL0.filter(x=>x.g>=3).map(x=>({x:x.sd, y:x.s, j:x.j}))
+    }]},
+    options:{responsive:true, maintainAspectRatio:false,
+      scales:{x:{title:{display:true,text:'Écart-type'}}, y:{title:{display:true,text:'Moyenne'}}},
+      plugins:{legend:{display:false}, tooltip:{callbacks:{label: c => `${c.raw.j}: ${c.raw.y.toFixed(1)} (σ=${c.raw.x.toFixed(1)})`}}}
+    }
+  });
+}
+
+function getCss(varName) {
+  return getComputedStyle(document.documentElement).getPropertyValue(varName).trim() || '#999';
+}
+
+function renderPicksTable(filtre) {
+  const picks = (filtre ? (SEED[filtre]||[]) : PL)
+    .slice().sort((a,b) => (b.iso||"").localeCompare(a.iso||""));
+  const t = document.getElementById('t');
+  t.innerHTML = `
+    <thead><tr>
+      <th>Date</th><th>Profil</th><th>Joueur</th><th class="r">Score</th>
+      <th class="r">Malus</th><th>Pts/Reb/Ast</th>
+    </tr></thead>
+    <tbody>${picks.map(p => `
+      <tr>
+        <td>${p.iso||""}</td>
+        <td>${p.profil || filtre || ""}</td>
+        <td>${p.j||""}</td>
+        <td class="r"><span class="chip ${p.s>=35?'hi':(p.s<15?'lo':'md')}">${p.s??""}</span></td>
+        <td class="r">${p.m??""}</td>
+        <td class="lk">${p.l||""}</td>
+      </tr>`).join('')}
+    </tbody>`;
+}
+
+function renderPlayersTable() {
+  const q = (document.getElementById('q').value || '').toLowerCase();
+  const vue = document.getElementById('tv').value;
+  const filtrePos = document.getElementById('fl').value;
+
+  let data = ALL0.filter(x => x.g >= 3);
+  if (q) data = data.filter(x => x.j.toLowerCase().includes(q) || x.t.toLowerCase().includes(q));
+  if (filtrePos) data = data.filter(x => x.p === filtrePos);
+
+  if (vue === 'base') data.sort((a,b) => b.s - a.s);
+  else data.sort((a,b) => b.u35 - a.u35 || a.sd - b.sd);
+
+  const pt = document.getElementById('pt');
+  if (vue === 'base') {
+    pt.innerHTML = `
+      <thead><tr>
+        <th>Joueur</th><th>Éq.</th><th>Pos.</th><th class="r">Matchs</th>
+        <th class="r">Min</th><th class="r">Moy.</th><th class="r">5 derniers</th><th class="r">σ</th>
+      </tr></thead>
+      <tbody>${data.slice(0,120).map(p => `
+        <tr>
+          <td>${p.j}</td><td>${p.t}</td><td>${p.p}</td>
+          <td class="r">${p.g}</td><td class="r">${p.mn}</td>
+          <td class="r"><b>${p.s}</b></td><td class="r">${p.m5}</td>
+          <td class="r">${p.sd}</td>
+        </tr>`).join('')}
+      </tbody>`;
+  } else {
+    pt.innerHTML = `
+      <thead><tr>
+        <th>Joueur</th><th>Éq.</th><th>Pos.</th>
+        <th class="r">Moy.</th><th class="r">P20</th><th class="r">P50</th><th class="r">P80</th>
+        <th class="r">%≥35</th><th class="r">σ</th>
+      </tr></thead>
+      <tbody>${data.slice(0,120).map(p => `
+        <tr>
+          <td>${p.j}</td><td>${p.t}</td><td>${p.p}</td>
+          <td class="r">${p.s}</td><td class="r">${p.p20}</td>
+          <td class="r">${p.p50}</td><td class="r">${p.p80}</td>
+          <td class="r">${p.u35}%</td><td class="r">${p.sd}</td>
+        </tr>`).join('')}
+      </tbody>`;
+  }
+}
+
+function remplirSelecteurs() {
+  const ip = document.getElementById('ip');
+  ip.innerHTML = Object.keys(SEED).map(p => `<option>${p}</option>`).join('') + '<option value="__new__">+ Nouveau profil</option>';
+  ip.onchange = () => {
+    document.getElementById('in').style.display = ip.value === '__new__' ? 'inline-block' : 'none';
+  };
+
+  const fl = document.getElementById('fl');
+  fl.innerHTML = '<option value="">Toutes positions</option>' +
+    ['PG','SG','SF','PF','C'].map(p => `<option>${p}</option>`).join('');
+
+  const bds = document.getElementById('bds');
+  bds.innerHTML = Object.keys(BOX).sort().map(iso => `<option>${iso}</option>`).join('');
+}
+
+/* ============================================================
+   ÉVÉNEMENTS
+   ============================================================ */
+document.getElementById('q').addEventListener('input', renderPlayersTable);
+document.getElementById('tv').addEventListener('change', renderPlayersTable);
+document.getElementById('fl').addEventListener('change', renderPlayersTable);
+
+document.getElementById('ex').onclick = () => {
+  const data = { version: 1, exported: new Date().toISOString(), profiles: SEED, box: BOX };
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'data.json';
+  a.click(); URL.revokeObjectURL(url);
+  document.getElementById('exn').textContent = `✓ data.json téléchargé. Déposez-le à la racine du dépôt.`;
+};
+
+document.getElementById('ab').onclick = () => {
+  const profil = document.getElementById('ip').value;
+  const iso    = document.getElementById('ad').value;
+  const j      = document.getElementById('aj').value.trim();
+  const s      = +document.getElementById('as').value;
+  const m      = +document.getElementById('am').value;
+  if (!profil || profil === '__new__' || !iso || !j) return alert("Profil, date et joueur requis.");
+  if (!SEED[profil]) SEED[profil] = [];
+  SEED[profil] = SEED[profil].filter(x => x.iso !== iso);
+  SEED[profil].push({
+    iso, j, s, m,
+    l: `${document.getElementById('ap').value||0}/${document.getElementById('ar').value||0}/${document.getElementById('aa').value||0}`
+  });
+  SEED[profil].sort((a,b) => a.iso.localeCompare(b.iso));
+  PL = [];
+  for (const [p, picks] of Object.entries(SEED)) for (const x of picks) PL.push({...x, profil:p});
+  renderAll();
+};
+
+document.getElementById('rs').onclick = () => {
+  const profil = document.getElementById('ip').value;
+  if (profil && profil !== '__new__' && confirm(`Supprimer le profil ${profil} ?`)) {
+    delete SEED[profil];
+    PL = PL.filter(x => x.profil !== profil);
+    renderAll();
+  }
+};
+
+let picksBuffer = null;
+document.getElementById('fi').onchange = e => lireFichierPicks(e.target.files[0]);
+document.getElementById('dz').onclick = () => document.getElementById('fi').click();
+
+function lireFichierPicks(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    picksBuffer = parserPicks(e.target.result);
+    const pv = document.getElementById('pv');
+    pv.textContent = picksBuffer ? `✓ ${picksBuffer.length} picks lus` : `⚠️ Aucune ligne valide`;
+    document.getElementById('go').disabled = !picksBuffer;
+  };
+  reader.readAsText(file);
+}
+
+function parserPicks(txt) {
+  const lines = txt.split(/\r?\n/).filter(l => l.trim());
+  if (!lines.length) return null;
+  const sep = lines[0].includes('\t') ? '\t' : ',';
+  const header = lines[0].split(sep).map(s => s.trim().toLowerCase());
+  const idx = n => header.indexOf(n);
+  const iDate = idx('date'), iJ = idx('joueur'), iPts = idx('pts'),
+        iReb = idx('reb'), iAst = idx('ast'), iMal = idx('malus'), iScore = idx('score');
+  const out = [];
+  for (let i = 1; i < lines.length; i++) {
+    const c = lines[i].split(sep);
+    if (!c[iDate]) continue;
+    out.push({
+      iso: normaliserDate(c[iDate]),
+      j: c[iJ] || "",
+      s: +c[iScore] || 0,
+      m: +c[iMal] || 0,
+      l: `${c[iPts]||0}/${c[iReb]||0}/${c[iAst]||0}`
+    });
+  }
+  return out;
+}
+
+function normaliserDate(s) {
+  s = s.trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  const m = s.match(/(\d{1,4})[\/\.\-](\d{1,2})[\/\.\-](\d{1,4})/);
+  if (m) {
+    let [_, a, b, c] = m;
+    if (a.length === 4) return `${a}-${b.padStart(2,'0')}-${c.padStart(2,'0')}`;
+    return `${c}-${b.padStart(2,'0')}-${a.padStart(2,'0')}`;
+  }
+  return s;
+}
+
+document.getElementById('go').onclick = () => {
+  if (!picksBuffer) return;
+  let profil = document.getElementById('ip').value;
+  if (profil === '__new__') {
+    profil = document.getElementById('in').value.trim();
+    if (!profil) return alert("Nom du nouveau profil requis.");
+    SEED[profil] = [];
+  }
+  const mode = document.querySelector('input[name="md"]:checked').value;
+  if (mode === 'r') SEED[profil] = [];
+  const map = Object.fromEntries((SEED[profil]||[]).map(x => [x.iso, x]));
+  for (const p of picksBuffer) map[p.iso] = p;
+  SEED[profil] = Object.values(map).sort((a,b)=>a.iso.localeCompare(b.iso));
+  PL = [];
+  for (const [pp, picks] of Object.entries(SEED)) for (const x of picks) PL.push({...x, profil:pp});
+  document.getElementById('pv').textContent = `✓ Importés dans ${profil}`;
+  renderAll();
+};
+
+document.getElementById('bpa').onclick = () => {
+  const txt = document.getElementById('bta').value;
+  const parsed = parserBox(txt);
+  if (!parsed) {
+    document.getElementById('bpv').textContent = "⚠️ Aucune ligne valide";
+    document.getElementById('bgo').disabled = true;
+    return;
+  }
+  window._boxBuffer = parsed;
+  document.getElementById('bpv').textContent = `✓ ${Object.keys(parsed).length} jour(s) détecté(s)`;
+  document.getElementById('bgo').disabled = false;
+};
+
+function parserBox(txt) {
+  const lines = txt.split(/\r?\n/).filter(l => l.trim());
+  if (lines.length < 2) return null;
+  const sep = lines[0].includes('\t') ? '\t' : ',';
+  const header = lines[0].split(sep).map(s => s.trim().toLowerCase());
+  const idx = n => header.indexOf(n);
+  const iDate = idx('date'), iJ = idx('joueur'), iT = idx('equipe') >= 0 ? idx('equipe') : idx('équipe');
+  const iMin = idx('minutes'), iPts = idx('pts'), iReb = idx('reb'), iAst = idx('ast');
+  const iStl = idx('stl'), iBlk = idx('blk'), iTov = idx('tov');
+  const iFgm = idx('fgm'), iFga = idx('fga'), i3pm = idx('3pm'), i3pa = idx('3pa');
+  const iFtm = idx('ftm'), iFta = idx('fta');
+  if (iDate < 0 || iJ < 0) return null;
+
+  const out = {};
+  for (let i = 1; i < lines.length; i++) {
+    const c = lines[i].split(sep);
+    if (!c[iDate]) continue;
+    const iso = normaliserDate(c[iDate]);
+    if (!out[iso]) out[iso] = [];
+    out[iso].push({
+      j: c[iJ], t: c[iT] || "?",
+      mn: +c[iMin] || 0, pts: +c[iPts] || 0, reb: +c[iReb] || 0, ast: +c[iAst] || 0,
+      stl: +c[iStl] || 0, blk: +c[iBlk] || 0, tov: +c[iTov] || 0,
+      fgm: +c[iFgm] || 0, fga: +c[iFga] || 0, tpm: +c[i3pm] || 0, tpa: +c[i3pa] || 0,
+      ftm: +c[iFtm] || 0, fta: +c[iFta] || 0, status: ""
+    });
+  }
+  return Object.keys(out).length ? out : null;
+}
+
+document.getElementById('bgo').onclick = () => {
+  if (!window._boxBuffer) return;
+  Object.assign(BOX, window._boxBuffer);
+  ALL0 = computeAggregates(BOX);
+  document.getElementById('bpv').textContent = "✓ Boxscores importés.";
+  remplirSelecteurs();
+  renderCharts();
+  renderPlayersTable();
+};
+
+document.getElementById('bdel').onclick = () => {
+  const iso = document.getElementById('bds').value;
+  if (iso && confirm(`Supprimer ${iso} ?`)) {
+    delete BOX[iso];
+    ALL0 = computeAggregates(BOX);
+    remplirSelecteurs();
+    renderCharts();
+    renderPlayersTable();
+  }
+};
+
+/* ============================================================
+   DÉMARRAGE
+   ============================================================ */
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', chargerDonnees);
+} else {
+  chargerDonnees();
+}
+</script>
+</body>
+</html>
