@@ -113,10 +113,15 @@ button.b{cursor:pointer;font-weight:600}button.pri{background:var(--tx);color:va
 
   <div class="card" style="margin-top:14px">
     <h3>Importer des boxscores</h3>
-    <p class="n">CSV (Date, Joueur, Equipe, Adversaire, Domicile, Minutes, FGM, FGA, 3PM, 3PA, FTM, FTA, REB, AST, STL, BLK, TOV, PTS, Statut) ou fichier XLSX.</p>
+    <p class="n">Dépose ton fichier <b>.xlsx / .xls / .ods</b> (un onglet par date) ou un <b>CSV</b> (Date, Joueur, Equipe, Adversaire, Domicile, Minutes, FGM, FGA, 3PM, 3PA, FTM, FTA, REB, AST, STL, BLK, TOV, PTS, Statut).</p>
+    
+    <div class="drop" id="bdz">Glisse un fichier ici ou clique pour le choisir<input type="file" id="bfi" accept=".ods,.xlsx,.xls,.csv,.tsv,.txt" hidden></div>
+    
+    <p class="hlp" style="margin:10px 0 6px">OU colle du texte :</p>
     <div class="ctl"><textarea id="bta" rows="3" class="g" placeholder="Colle ici les lignes CSV avec en-tête"></textarea><button class="b" id="bpa">Analyser</button></div>
+    
     <div class="msg" id="bpv"></div>
-    <div class="ctl"><button class="b pri" id="bgo" disabled>Importer</button><select id="bds"></select><button class="b" id="bdel">Suppr. jour</button></div>
+    <div class="ctl"><button class="b pri" id="bgo" disabled>Importer les boxscores</button><select id="bds"></select><button class="b" id="bdel">Suppr. jour</button></div>
   </div>
 
   <div class="card" style="margin-top:14px">
@@ -209,7 +214,6 @@ async function chargerDonnees() {
     SEED = data.profiles || data.SEED || data.profils || {};
     const rawBox = data.box || data.BOX || data.boxscores || {};
 
-    // CORRECTIF ICI : Gestion des formats tableau ou objet pour la box
     BOX = {};
     for (const [iso, rows] of Object.entries(rawBox)) {
       BOX[iso] = rows.map(a => {
@@ -874,18 +878,146 @@ document.getElementById('go').onclick = () => {
   renderAll();
 };
 
+/* ============================================================
+   IMPORT BOXSCORES (TEXTE ET EXCEL)
+   ============================================================ */
 document.getElementById('bpa').onclick = () => {
   const txt = document.getElementById('bta').value;
   const parsed = parserBox(txt);
-  if (!parsed) {
-    document.getElementById('bpv').textContent = "⚠️ Aucune ligne valide";
+  preparerBoxData(parsed);
+};
+
+function preparerBoxData(parsed) {
+  const bpv = document.getElementById('bpv');
+  if (!parsed || !Object.keys(parsed).length) {
+    bpv.textContent = "⚠️ Aucune ligne valide trouvée.";
+    bpv.classList.add('er');
     document.getElementById('bgo').disabled = true;
+    window._boxBuffer = null;
     return;
   }
   window._boxBuffer = parsed;
-  document.getElementById('bpv').textContent = `✓ ${Object.keys(parsed).length} jour(s) détecté(s)`;
+  bpv.textContent = `✓ ${Object.keys(parsed).length} jour(s) détecté(s), prêt(s) à importer.`;
+  bpv.classList.remove('er');
   document.getElementById('bgo').disabled = false;
+}
+
+// Drag & Drop / Click pour le fichier Excel/CSV
+document.getElementById('bdz').onclick = () => document.getElementById('bfi').click();
+document.getElementById('bfi').onchange = e => {
+  if (e.target.files.length) lireFichierBox(e.target.files[0]);
 };
+
+function lireFichierBox(file) {
+  const ext = file.name.split('.').pop().toLowerCase();
+  const bpv = document.getElementById('bpv');
+  bpv.classList.remove('er');
+  bpv.textContent = "Lecture en cours...";
+
+  if (['xlsx', 'xls', 'ods'].includes(ext)) {
+    const reader = new FileReader();
+    reader.onload = e => {
+      try {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, {type: 'array'});
+        const parsed = parserExcel(workbook);
+        preparerBoxData(parsed);
+      } catch (err) {
+        bpv.textContent = `⚠️ Erreur Excel : ${err.message}`;
+        bpv.classList.add('er');
+        document.getElementById('bgo').disabled = true;
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  } else {
+    const reader = new FileReader();
+    reader.onload = e => {
+      try {
+        const parsed = parserBox(e.target.result);
+        preparerBoxData(parsed);
+      } catch (err) {
+        bpv.textContent = `⚠️ Erreur CSV : ${err.message}`;
+        bpv.classList.add('er');
+        document.getElementById('bgo').disabled = true;
+      }
+    };
+    reader.readAsText(file);
+  }
+}
+
+function parserExcel(workbook) {
+  let isMultiSheetByDate = false;
+  workbook.SheetNames.forEach(s => {
+    if (/^\d{4}[\.\-\/]\d{1,2}[\.\-\/]\d{1,2}$/.test(s.trim())) isMultiSheetByDate = true;
+  });
+
+  if (isMultiSheetByDate) {
+    // Format Basketball-Reference : un onglet par date
+    let allRows = [];
+    workbook.SheetNames.forEach(sheetName => {
+      let iso = normaliserDate(sheetName);
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return;
+
+      const sheet = workbook.Sheets[sheetName];
+      const rows = XLSX.utils.sheet_to_json(sheet, {header: 1});
+      
+      let headerIdx = -1;
+      for (let i=0; i<Math.min(6, rows.length); i++) {
+        let r = rows[i].map(c => String(c || '').toLowerCase());
+        if (r.some(c => c.includes('player') || c.includes('joueur'))) { headerIdx = i; break; }
+      }
+      if (headerIdx === -1) return;
+
+      let headers = rows[headerIdx].map(c => String(c || '').trim().toLowerCase());
+      let idx = {
+        j: headers.findIndex(h => h === 'player' || h === 'joueur'),
+        mn: headers.findIndex(h => h === 'mp' || h === 'min' || h === 'minutes'),
+        fgm: headers.findIndex(h => h === 'fg' || h === 'fgm'),
+        fga: headers.findIndex(h => h === 'fga'),
+        tpm: headers.findIndex(h => h === '3p' || h === '3pm'),
+        tpa: headers.findIndex(h => h === '3pa'),
+        ftm: headers.findIndex(h => h === 'ft' || h === 'ftm'),
+        fta: headers.findIndex(h => h === 'fta'),
+        reb: headers.findIndex(h => h === 'trb' || h === 'reb'),
+        ast: headers.findIndex(h => h === 'ast'),
+        stl: headers.findIndex(h => h === 'stl'),
+        blk: headers.findIndex(h => h === 'blk'),
+        tov: headers.findIndex(h => h === 'tov'),
+        pts: headers.findIndex(h => h === 'pts'),
+      };
+
+      if (idx.j === -1) return;
+
+      for (let i=headerIdx+1; i<rows.length; i++) {
+        let r = rows[i];
+        if (!r || r.length === 0 || !r[idx.j]) continue;
+        let pName = String(r[idx.j]).trim();
+        if (!pName || pName === 'Reserves' || pName === 'Totals' || pName === 'Team Totals' || pName === 'Remplaçants') continue;
+
+        allRows.push({
+          iso: iso, j: pName, t: "?", opp: "",
+          mn: +(r[idx.mn]) || 0, fgm: +(r[idx.fgm]) || 0, fga: +(r[idx.fga]) || 0,
+          tpm: +(r[idx.tpm]) || 0, tpa: +(r[idx.tpa]) || 0, ftm: +(r[idx.ftm]) || 0, fta: +(r[idx.fta]) || 0,
+          reb: +(r[idx.reb]) || 0, ast: +(r[idx.ast]) || 0, stl: +(r[idx.stl]) || 0, blk: +(r[idx.blk]) || 0,
+          tov: +(r[idx.tov]) || 0, pts: +(r[idx.pts]) || 0, status: ""
+        });
+      }
+    });
+    
+    let out = {};
+    allRows.forEach(row => {
+      if (!out[row.iso]) out[row.iso] = [];
+      out[row.iso].push(row);
+    });
+    return Object.keys(out).length ? out : null;
+
+  } else {
+    // Format plat classique : on convertit en CSV et on utilise parserBox
+    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+    const csv = XLSX.utils.sheet_to_csv(sheet, {FS: ','});
+    return parserBox(csv);
+  }
+}
 
 function parserBox(txt) {
   const lines = txt.split(/\r?\n/).filter(l => l.trim());
@@ -925,7 +1057,9 @@ document.getElementById('bgo').onclick = () => {
   const newMax = Object.keys(BOX).sort().pop();
   if (newMax && newMax > maxDateStr) maxDateStr = newMax;
   
-  document.getElementById('bpv').textContent = "✓ Boxscores importés.";
+  document.getElementById('bpv').textContent = "✓ Boxscores importés avec succès.";
+  document.getElementById('bgo').disabled = true;
+  window._boxBuffer = null;
   remplirSelecteurs();
   renderAllViews();
 };
