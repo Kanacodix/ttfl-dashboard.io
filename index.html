@@ -166,8 +166,8 @@ let BOX  = {};
 let ALL0 = [];
 let PL   = [];
 let charts = {};
-let currentProfil = 'all'; // Profil actif dans la nav
-let maxDateStr = "";       // Date la plus récente du dataset
+let currentProfil = 'all';
+let maxDateStr = "";
 
 const normStr = s => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 
@@ -187,15 +187,11 @@ function ttflScore(b) {
    ============================================================ */
 function getDispoStatus(joueur, profil) {
   if (profil === 'all') return { ok: true, label: "Dispo", jours: 0 };
-  
   const picks = SEED[profil] || [];
   const jPicks = picks.filter(x => x.j === joueur).sort((a,b) => (b.iso||"").localeCompare(a.iso||""));
-  
   if (!jPicks.length) return { ok: true, label: "Jamais pris", jours: 99 };
-  
   const lastIso = jPicks[0].iso;
   const diff = (new Date(maxDateStr) - new Date(lastIso)) / (1000 * 60 * 60 * 24);
-  
   if (diff >= 30) return { ok: true, label: `Dispo (J+${Math.floor(diff)})`, jours: diff };
   return { ok: false, label: `Indispo (${Math.ceil(30 - diff)}j)`, jours: diff };
 }
@@ -323,7 +319,6 @@ function renderAll() {
   remplirSelecteurs();
 }
 
-// Centralise les appels de rendu selon le profil sélectionné
 function renderAllViews() {
   const p = currentProfil === 'all' ? undefined : currentProfil;
   renderKPI(p);
@@ -337,7 +332,6 @@ function renderNav() {
   const nav = document.getElementById('nav');
   nav.innerHTML = '';
 
-  // 1. Bouton "Tous" en PREMIER
   const all = document.createElement('button');
   all.textContent = 'Tous les profils';
   all.className = 'all';
@@ -349,7 +343,6 @@ function renderNav() {
   };
   nav.appendChild(all);
 
-  // 2. Boutons profils
   const profils = Object.keys(SEED);
   profils.forEach((p, i) => {
     const b = document.createElement('button');
@@ -359,7 +352,6 @@ function renderNav() {
     
     b.onclick = () => {
       if (currentProfil === p) {
-        // Si on reclique sur le profil actif, on annule le filtre
         currentProfil = 'all';
       } else {
         currentProfil = p;
@@ -370,7 +362,6 @@ function renderNav() {
     nav.appendChild(b);
   });
 
-  // 3. Bouton Importer
   const imp = document.createElement('button');
   imp.textContent = '+ Importer';
   imp.className = 'imp';
@@ -436,12 +427,12 @@ function renderGalerie() {
   }
 
   const styles = [
-    { titre: "Réguliers",        tri: x => -x.s,                     cond: x => x.s >= 15 },
-    { titre: "Explosifs",        tri: x => -x.p80,                   cond: x => x.s >= 15 },
-    { titre: "Valeurs sûres",    tri: x => (x.sd / Math.max(1, x.s)), cond: x => x.s >= 20 },
-    { titre: "Bon marché (min)", tri: x => -x.tpm,                   cond: x => x.mn >= 15 && x.s >= 12 },
-    { titre: "Forme récente",    tri: x => -x.m5,                    cond: x => x.s >= 15 },
-    { titre: "Volumes rebonds",  tri: x => -x.rb,                    cond: x => x.s >= 15 }
+    { titre: "Réguliers", desc: "Les meilleures moyennes de score TTFL sur la saison.", tri: x => -x.s, cond: x => x.s >= 15 },
+    { titre: "Explosifs", desc: "Les plus gros plafonds de score (80% de leurs matchs sont en dessous).", tri: x => -x.p80, cond: x => x.s >= 15 },
+    { titre: "Valeurs sûres", desc: "Le meilleur ratio moyenne / écart-type : peu de variations, de la constance.", tri: x => (x.sd / Math.max(1, x.s)), cond: x => x.s >= 20 },
+    { titre: "Bon marché (min)", desc: "Le meilleur rendement par minute jouée (Score TTFL / Min).", tri: x => -x.tpm, cond: x => x.mn >= 15 && x.s >= 12 },
+    { titre: "Forme récente", desc: "La meilleure moyenne de score sur leurs 5 derniers matchs.", tri: x => -x.m5, cond: x => x.s >= 15 },
+    { titre: "Volumes rebonds", desc: "Les joueurs qui captent le plus de rebonds en moyenne.", tri: x => -x.rb, cond: x => x.s >= 15 }
   ];
   
   styles.forEach(st => {
@@ -449,7 +440,7 @@ function renderGalerie() {
     const top = [...pool].sort((a,b) => st.tri(a) - st.tri(b)).slice(0, 5);
     const card = document.createElement('div');
     card.className = 'card';
-    card.innerHTML = `<h3>${st.titre}</h3><p class="n">Top 5 disponibles</p>` +
+    card.innerHTML = `<h3>${st.titre}</h3><p class="n">${st.desc}</p>` +
       top.map((p, idx) =>
         `<div class="r2"><span>${idx+1}. <span class="dot" style="background:var(--${'P'+(idx%6)})"></span>${p.j} <span class="lk">(${p.t})</span></span><span>${st.titre.includes('min') ? p.tpm.toFixed(2) : (st.titre.includes('sûres') ? (p.sd/Math.max(1,p.s)).toFixed(2) : p.s.toFixed(1))}</span></div>`
       ).join('');
@@ -507,14 +498,12 @@ const customLabelsPlugin = {
   id: 'customLabels',
   afterDatasetsDraw(chart) {
     const { ctx } = chart;
-    const meta = chart.getDatasetMeta(2); // Dataset 2 = Recherche
+    const meta = chart.getDatasetMeta(2);
     if (!meta || !meta.data || meta.hidden) return;
-    
     ctx.save();
     ctx.font = 'bold 13px system-ui, sans-serif';
     ctx.fillStyle = getCss('--tx');
     ctx.textBaseline = 'middle';
-    
     meta.data.forEach((element, index) => {
       const pt = chart.data.datasets[2].data[index];
       if (pt) {
@@ -536,7 +525,6 @@ function renderScatterChart(id, dataArr, xKey, yKey, xLabel, yLabel, q) {
   base.forEach(x => {
     const isDisp = getDispoStatus(x.j, currentProfil).ok;
     const obj = { x: x[xKey], y: x[yKey], j: x.j, t: x.t };
-    
     if (q && (normStr(x.j).includes(normStr(q)) || normStr(x.t).includes(normStr(q)))) {
       match.push(obj);
     } else if (isDisp) {
@@ -547,28 +535,9 @@ function renderScatterChart(id, dataArr, xKey, yKey, xLabel, yLabel, q) {
   });
 
   const datasets = [
-    {
-      label: 'Indisponibles',
-      data: indispo,
-      backgroundColor: 'rgba(200, 200, 200, 0.15)',
-      pointRadius: 4
-    },
-    {
-      label: 'Disponibles',
-      data: dispo,
-      backgroundColor: 'rgba(28, 126, 214, 0.4)',
-      pointRadius: 5
-    },
-    {
-      label: 'Recherche',
-      data: match,
-      backgroundColor: 'var(--P0)',
-      borderColor: 'var(--tx)',
-      borderWidth: 2,
-      pointRadius: 8,
-      pointHoverRadius: 10,
-      z: 10
-    }
+    { label: 'Indisponibles', data: indispo, backgroundColor: 'rgba(200, 200, 200, 0.15)', pointRadius: 4 },
+    { label: 'Disponibles', data: dispo, backgroundColor: 'rgba(28, 126, 214, 0.4)', pointRadius: 5 },
+    { label: 'Recherche', data: match, backgroundColor: 'var(--P0)', borderColor: 'var(--tx)', borderWidth: 2, pointRadius: 8, pointHoverRadius: 10, z: 10 }
   ];
 
   charts[id] = new Chart(document.getElementById(id), {
@@ -576,17 +545,10 @@ function renderScatterChart(id, dataArr, xKey, yKey, xLabel, yLabel, q) {
     data: { datasets },
     options: {
       responsive: true, maintainAspectRatio: false,
-      scales: {
-        x: { title: { display: true, text: xLabel } },
-        y: { title: { display: true, text: yLabel } }
-      },
+      scales: { x: { title: { display: true, text: xLabel } }, y: { title: { display: true, text: yLabel } } },
       plugins: {
         legend: { display: false },
-        tooltip: { 
-          callbacks: { 
-            label: c => `${c.raw.j}: ${c.raw.y.toFixed(1)} (${getDispoStatus(c.raw.j, currentProfil).label})` 
-          } 
-        }
+        tooltip: { callbacks: { label: c => `${c.raw.j}: ${c.raw.y.toFixed(1)} (${getDispoStatus(c.raw.j, currentProfil).label})` } }
       }
     },
     plugins: [customLabelsPlugin]
@@ -600,10 +562,7 @@ function renderCharts(filtre) {
   destroyChart('c1');
   const datasets1 = profils.map((p, i) => {
     const picks = (SEED[p]||[]).filter(x => x.s !== undefined).sort((a,b)=>a.iso.localeCompare(b.iso));
-    return {
-      label: p, borderColor: getCss(`--P${i%6}`),
-      data: picks.map(x => ({ x: x.iso, y: x.s })), tension: .3, pointRadius: 2
-    };
+    return { label: p, borderColor: getCss(`--P${i%6}`), data: picks.map(x => ({ x: x.iso, y: x.s })), tension: .3, pointRadius: 2 };
   });
   charts.c1 = new Chart(document.getElementById('c1'), {
     type:'line', data:{datasets:datasets1},
@@ -616,10 +575,7 @@ function renderCharts(filtre) {
   const datasets2 = profils.map((p, i) => {
     const picks = (SEED[p]||[]).filter(x => x.s !== undefined).sort((a,b)=>a.iso.localeCompare(b.iso));
     let c = 0;
-    return {
-      label: p, borderColor: getCss(`--P${i%6}`),
-      data: picks.map(x => ({ x: x.iso, y: (c += x.s||0) })), tension: .3, pointRadius: 2
-    };
+    return { label: p, borderColor: getCss(`--P${i%6}`), data: picks.map(x => ({ x: x.iso, y: (c += x.s||0) })), tension: .3, pointRadius: 2 };
   });
   charts.c2 = new Chart(document.getElementById('c2'), {
     type:'line', data:{datasets:datasets2},
