@@ -209,15 +209,28 @@ async function chargerDonnees() {
     SEED = data.profiles || data.SEED || data.profils || {};
     const rawBox = data.box || data.BOX || data.boxscores || {};
 
+    // CORRECTIF ICI : Gestion des formats tableau ou objet pour la box
     BOX = {};
     for (const [iso, rows] of Object.entries(rawBox)) {
-      BOX[iso] = rows.map(a => ({
-        j: a[0], t: a[1], opp: a[2], mn: +a[3]||0,
-        fgm: +a[4]||0, fga: +a[5]||0, tpm: +a[6]||0, tpa: +a[7]||0,
-        ftm: +a[8]||0, fta: +a[9]||0, reb: +a[10]||0, ast: +a[11]||0,
-        stl: +a[12]||0, blk: +a[13]||0, tov: +a[14]||0, pts: +a[15]||0,
-        status: a[16]||""
-      }));
+      BOX[iso] = rows.map(a => {
+        if (Array.isArray(a)) {
+          return {
+            j: a[0], t: a[1], opp: a[2], mn: +a[3]||0,
+            fgm: +a[4]||0, fga: +a[5]||0, tpm: +a[6]||0, tpa: +a[7]||0,
+            ftm: +a[8]||0, fta: +a[9]||0, reb: +a[10]||0, ast: +a[11]||0,
+            stl: +a[12]||0, blk: +a[13]||0, tov: +a[14]||0, pts: +a[15]||0,
+            status: a[16]||""
+          };
+        } else {
+          return {
+            j: a.j, t: a.t, opp: a.opp || "", mn: +(a.mn)||0,
+            fgm: +(a.fgm)||0, fga: +(a.fga)||0, tpm: +(a.tpm)||0, tpa: +(a.tpa)||0,
+            ftm: +(a.ftm)||0, fta: +(a.fta)||0, reb: +(a.reb)||0, ast: +(a.ast)||0,
+            stl: +(a.stl)||0, blk: +(a.blk)||0, tov: +(a.tov)||0, pts: +(a.pts)||0,
+            status: a.status || ""
+          };
+        }
+      });
     }
 
     ALL0 = data.ALL0 || computeAggregates(BOX);
