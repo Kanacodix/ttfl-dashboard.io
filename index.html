@@ -35,6 +35,30 @@ button.b{cursor:pointer;font-weight:600}button.pri{background:var(--tx);color:va
 .drop{border:2px dashed var(--bd);border-radius:12px;padding:18px;text-align:center;color:var(--mut);cursor:pointer}.drop.ov{border-color:var(--tx);background:var(--hl)}
 .msg{margin:10px 0 0;padding:10px 12px;border-radius:10px;background:var(--hl);font-size:14px}.msg:empty{display:none}.msg.er{color:var(--bad)}
 .ft{display:flex;justify-content:space-between;align-items:baseline;gap:8px}.nm2{font-size:19px;font-weight:700}.big{font-size:34px;font-weight:700;line-height:1}.bar{display:flex;height:10px;border-radius:6px;overflow:hidden;margin:10px 0 4px}.bar i{display:block;height:100%}.r2{display:flex;justify-content:space-between;gap:8px;padding:5px 0;border-bottom:1px solid var(--bd);font-size:14px}.sw{display:inline-block;width:10px;height:10px;border-radius:3px;margin:0 4px 0 10px}.leg{font-size:13px;color:var(--mut);margin:6px 0 0}.leg i{display:inline-block;width:10px;height:10px;border-radius:2px;margin:0 4px 0 10px}.hlp{font-size:13px;color:var(--mut)}
+/* Styles ajoutés pour les cartes détaillées et le comparateur */
+.g-card{display:flex;flex-direction:column;gap:8px}
+.g-card .g-desc{font-size:13px;color:var(--mut);margin-bottom:10px;line-height:1.4}
+.g-card .g-name{font-size:20px;font-weight:800;display:flex;justify-content:space-between;align-items:baseline}
+.g-card .g-name span:last-child{font-size:28px}
+.g-card .g-sub{font-size:14px;color:var(--mut)}
+.g-card .g-stats{font-size:13.5px;line-height:1.6;margin-top:4px}
+.g-card .g-bar{display:flex;height:12px;border-radius:6px;overflow:hidden;margin:6px 0}
+.g-card .g-bar i{display:block;height:100%}
+.g-card .g-legend{font-size:12px;color:var(--mut);display:flex;gap:12px}
+.g-card .g-next{font-size:13px;color:var(--mut);margin-top:8px;padding-top:8px;border-top:1px solid var(--bd);line-height:1.4}
+/* Floating Compare Button */
+#cmp-btn{position:fixed;bottom:24px;right:24px;background:var(--tx);color:var(--bg);padding:12px 24px;border-radius:99px;font-weight:700;font-size:16px;border:none;box-shadow:0 4px 12px rgba(0,0,0,.15);cursor:pointer;display:none;z-index:50;transition:transform .2s}
+#cmp-btn:hover{transform:scale(1.05)}
+/* Modal */
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;z-index:100;padding:16px}
+.modal.open{display:flex}
+.modal-inner{background:var(--card);border-radius:16px;width:100%;max-width:900px;max-height:90vh;overflow-y:auto;padding:24px;position:relative}
+.modal-inner h2{margin:0 0 16px}
+.modal-close{position:absolute;top:16px;right:16px;background:none;border:none;font-size:24px;color:var(--mut);cursor:pointer}
+.cmp-table{width:100%;border-collapse:collapse;font-size:14px;margin-top:10px}
+.cmp-table th,.cmp-table td{padding:10px;border-bottom:1px solid var(--bd);text-align:left}
+.cmp-table th{font-weight:600;color:var(--mut);background:var(--hl)}
+.cmp-table td.r{text-align:right}
 </style>
 </head>
 <body>
@@ -47,7 +71,9 @@ button.b{cursor:pointer;font-weight:600}button.pri{background:var(--tx);color:va
   <h2 class="sec">Bilan</h2><div class="grid" id="kp"></div>
 
   <h2 class="sec">Meilleurs picks disponibles par style</h2>
-  <p class="hlp" id="galn"></p><div class="grid" id="gal"></div>
+  <p class="hlp" id="galn"></p>
+  <div class="grid" id="gal"></div>
+  <div class="grid" id="gal-styles" style="margin-top:14px"></div>
 
   <h2 class="sec">Évolution</h2>
   <div class="grid">
@@ -136,6 +162,16 @@ button.b{cursor:pointer;font-weight:600}button.pri{background:var(--tx);color:va
   </div>
 </div>
 
+<button id="cmp-btn">Comparer (0)</button>
+
+<div class="modal" id="cmp-modal">
+  <div class="modal-inner">
+    <button class="modal-close" id="cmp-close">&times;</button>
+    <h2>Comparaison de joueurs</h2>
+    <div style="overflow-x:auto"><table class="cmp-table" id="cmp-table"></table></div>
+  </div>
+</div>
+
 <script>
 /* ============================================================
    POSITIONS
@@ -150,11 +186,10 @@ let BOX  = {};
 let ALL0 = [];
 let PL   = [];
 let charts = {};
+let cmpSelection = new Set();
 
 /* ============================================================
-   FORMULE TTFL OFFICIELLE  (corrigée)
-   (PTS + REB + AST + STL + BLK + FGM + 3PM + FTM)
-   − (TOV + (FGA−FGM) + (3PA−3PM) + (FTA−FTM))
+   FORMULE TTFL OFFICIELLE
    ============================================================ */
 function ttflScore(b) {
   const fgm = +b.fgm||0, fga = +b.fga||0;
@@ -213,7 +248,7 @@ async function chargerDonnees() {
 }
 
 /* ============================================================
-   AGRÉGATION BOX -> ALL0
+   AGRÉGATION BOX -> ALL0 (avec sous-scores pour les styles)
    ============================================================ */
 function computeAggregates(box) {
   const byPlayer = {};
@@ -238,21 +273,38 @@ function computeAggregates(box) {
     const mnAvg = games.reduce((a,g)=>a+g.mn,0) / games.length;
     const last5 = games.slice(-5).map(ttflScore);
     const m5 = last5.reduce((a,b)=>a+b,0) / last5.length;
+    
     const p20 = scores[Math.floor(n*0.2)] ?? scores[0];
     const p50 = scores[Math.floor(n*0.5)] ?? scores[0];
     const p80 = scores[Math.floor(n*0.8)] ?? scores[n-1];
+    
     const u35 = Math.round(100 * scores.filter(s => s >= 35).length / n);
+    const u25 = Math.round(100 * scores.filter(s => s >= 25).length / n);
+    
     const team = Object.entries(info.teams).sort((a,b)=>b[1]-a[1])[0]?.[0] || "?";
     const pos = POS[name.toLowerCase()] || "?";
+
+    // Sous-scores pour les styles
+    const sum_scoring = games.reduce((a,g)=>a+(g.pts + g.fgm + g.tpm + g.ftm),0);
+    const sum_pm = games.reduce((a,g)=>a+(g.ast + g.stl),0);
+    const sum_rb = games.reduce((a,g)=>a+(g.reb + g.blk),0);
+    const tot_pos = sum_scoring + sum_pm + sum_rb || 1;
+    
+    const pct_sc = Math.round(sum_scoring / tot_pos * 100);
+    const pct_pm = Math.round(sum_pm / tot_pos * 100);
+    const pct_rb = Math.round(sum_rb / tot_pos * 100);
+    const pct_hors = 100 - pct_sc;
 
     out.push({
       j: name, t: team, p: pos,
       g: n, mn: +mnAvg.toFixed(1), m5: +m5.toFixed(1),
       s: +avg.toFixed(1), sd: +sd.toFixed(1),
       p20: +p20.toFixed(1), p50: +p50.toFixed(1), p80: +p80.toFixed(1),
-      u35, tpm: +(avg/Math.max(1,mnAvg)).toFixed(2),
+      u25, u35, tpm: +(avg/Math.max(1,mnAvg)).toFixed(2),
       rb: +(games.reduce((a,g)=>a+g.reb,0)/n).toFixed(1),
-      sc: +(games.reduce((a,g)=>a+g.pts,0)/n).toFixed(1)
+      sc: +(games.reduce((a,g)=>a+g.pts,0)/n).toFixed(1),
+      pct_sc, pct_pm, pct_rb, pct_hors,
+      sum_sc: sum_scoring/n, sum_pm: sum_pm/n, sum_rb: sum_rb/n
     });
   }
   return out.sort((a,b) => b.s - a.s);
@@ -344,38 +396,111 @@ function renderKPI(filtre) {
 
 function renderGalerie() {
   const gal = document.getElementById('gal');
+  const galStyles = document.getElementById('gal-styles');
   const galn = document.getElementById('galn');
-  gal.innerHTML = '';
+  gal.innerHTML = ''; galStyles.innerHTML = '';
+  
   if (!ALL0.length) {
     galn.textContent = "Aucun boxscore exploitable pour calculer les meilleurs picks.";
     return;
   }
+  
   const elig = ALL0.filter(x => x.g >= 3);
+  
+  // 1. Top 5 par catégories simples (Logique corrigée)
   const styles = [
     { titre: "Réguliers",        tri: x => -x.s },
     { titre: "Explosifs",        tri: x => -x.p80 },
-    { titre: "Valeurs sûres",    tri: x => x.sd },
-    { titre: "Bon marché (min)", tri: x => x.mn },
+    { titre: "Valeurs sûres",    tri: x => -(x.s / Math.max(1, x.sd)) }, // Meilleur ratio moyenne / écart-type
+    { titre: "Bon marché (min)", tri: x => -x.tpm }, // Meilleur rendement par minute (filtré plus bas)
     { titre: "Forme récente",    tri: x => -x.m5 },
     { titre: "Volumes rebonds",  tri: x => -x.rb }
   ];
+  
   styles.forEach(st => {
-    const top = [...elig].sort((a,b) => st.tri(a) - st.tri(b)).slice(0, 5);
+    // Filtres de sécurité pour éviter les "faux" profils
+    let pool = elig.filter(x => x.s >= 15); 
+    if (st.titre === "Bon marché (min)") pool = elig.filter(x => x.mn >= 15 && x.s >= 10);
+    
+    const top = [...pool].sort((a,b) => st.tri(a) - st.tri(b)).slice(0, 5);
     const card = document.createElement('div');
     card.className = 'card';
     card.innerHTML = `<h3>${st.titre}</h3><p class="n">Top 5</p>` +
       top.map((p, idx) =>
-        `<div class="r2"><span>${idx+1}. <span class="dot" style="background:var(--${'P'+(idx%6)})"></span>${p.j} <span class="lk">(${p.t})</span></span><span>${p.s.toFixed(1)}</span></div>`
+        `<div class="r2"><span>${idx+1}. <span class="dot" style="background:var(--${'P'+(idx%6)})"></span>${p.j} <span class="lk">(${p.t})</span></span><span>${st.titre.includes('min') ? p.tpm.toFixed(2) : p.s.toFixed(1)}</span></div>`
       ).join('');
     gal.appendChild(card);
   });
   galn.textContent = `Basé sur ${elig.length} joueurs éligibles (≥ 3 matchs).`;
+
+  // 2. Cartes de style détaillées (Scoreurs, Playmakers, etc.)
+  const catDefs = [
+    { id:'Scoreurs', emoji:'🎯', desc:'Leur score vient des points et des tirs réussis. Gros plafond, mais lourds malus les soirs sans adresse.', tri: x=>x.sum_sc },
+    { id:'Playmakers', emoji:'🎩', desc:'Leur score vient des passes décisives et des interceptions, contre-balancées par les balles perdues.', tri: x=>x.sum_pm },
+    { id:'Rebondeurs', emoji:'🧱', desc:'Leur score vient des rebonds et des contres, avec un scoring plus modeste.', tri: x=>x.sum_rb },
+    { id:'Superscoreurs', emoji:'⭐', desc:'Ils mélangent au moins deux sources : les profils les plus complets.', tri: x=>x.s }
+  ];
+
+  catDefs.forEach(cat => {
+    const top = [...elig].sort((a,b) => cat.tri(b) - cat.tri(a)).slice(0, 4);
+    if (!top.length) return;
+    const best = top[0];
+    const others = top.slice(1).map(x=>`${x.j} (${x.s.toFixed(1)})`).join(' · ');
+
+    const html = `
+      <div class="card g-card">
+        <h3>${cat.emoji} ${cat.id}</h3>
+        <div class="g-desc">${cat.desc}</div>
+        
+        <div class="g-name">
+          <span>${best.j}</span>
+          <span style="color:var(--tx)">${best.s.toFixed(1).replace('.', ',')}</span>
+        </div>
+        <div class="g-sub">${best.t} · ${best.p} · ${best.g} matchs</div>
+        
+        <div class="g-stats">
+          Saison ${best.s.toFixed(1)} · σ ${best.sd.toFixed(1)} · ${best.u25} % ≥ 25 · ${best.u35} % ≥ 35<br>
+          P20–P80 : ${best.p20.toFixed(1)}–${best.p80.toFixed(1)} · ${best.tpm.toFixed(2)} TTFL/min · ${best.pct_hors} % hors scoring
+        </div>
+        
+        <div class="g-bar">
+          <i style="width:${best.pct_sc}%; background:var(--cs)"></i>
+          <i style="width:${best.pct_pm}%; background:var(--cp)"></i>
+          <i style="width:${best.pct_rb}%; background:var(--cr)"></i>
+        </div>
+        <div class="g-legend">
+          <span>Scoring ${best.pct_sc}%</span>
+          <span>Passes/int. ${best.pct_pm}%</span>
+          <span>Rebonds/contres ${best.pct_rb}%</span>
+        </div>
+        
+        <div class="g-next">Ensuite : ${others}</div>
+        <div class="g-sub" style="margin-top:4px;font-size:12px">${elig.length} joueurs dans ce style · σ moyen : ${(elig.reduce((a,b)=>a+b.sd,0)/elig.length).toFixed(1)}</div>
+      </div>
+    `;
+    galStyles.insertAdjacentHTML('beforeend', html);
+  });
 }
 
 function destroyChart(id) { if (charts[id]) { charts[id].destroy(); delete charts[id]; } }
 
 function renderCharts(filtre) {
   const profils = filtre ? [filtre] : Object.keys(SEED);
+  const q = (document.getElementById('q').value || '').toLowerCase();
+
+  // Helper pour séparer les points normaux et les points recherchés
+  const getScatterData = (arr, xKey, yKey) => {
+    const base = arr.filter(x=>x.g>=3).map(x=>({ x: x[xKey], y: x[yKey], j: x.j, t: x.t }));
+    const normal = [], match = [];
+    base.forEach(pt => {
+      if (q && (pt.j.toLowerCase().includes(q) || pt.t.toLowerCase().includes(q))) match.push(pt);
+      else normal.push(pt);
+    });
+    return [
+      { label: 'Autres', data: normal, backgroundColor: 'rgba(150,150,150,0.15)', pointRadius: 4 },
+      { label: 'Recherche', data: match, backgroundColor: 'var(--P1)', pointRadius: 10, borderColor: '#fff', borderWidth: 2 }
+    ];
+  };
 
   destroyChart('c1');
   const datasets1 = profils.map((p, i) => {
@@ -387,10 +512,7 @@ function renderCharts(filtre) {
   });
   charts.c1 = new Chart(document.getElementById('c1'), {
     type:'line', data:{datasets:datasets1},
-    options:{responsive:true, maintainAspectRatio:false,
-      scales:{x:{type:'category'}, y:{beginAtZero:true}},
-      plugins:{legend:{position:'bottom'}}
-    }
+    options:{responsive:true, maintainAspectRatio:false, scales:{x:{type:'category'}, y:{beginAtZero:true}}, plugins:{legend:{position:'bottom'}}}
   });
   document.getElementById('t1').textContent = "Score pick par pick";
   document.getElementById('n1').textContent = "Chronologie des scores TTFL";
@@ -406,10 +528,7 @@ function renderCharts(filtre) {
   });
   charts.c2 = new Chart(document.getElementById('c2'), {
     type:'line', data:{datasets:datasets2},
-    options:{responsive:true, maintainAspectRatio:false,
-      scales:{x:{type:'category'}, y:{beginAtZero:true}},
-      plugins:{legend:{position:'bottom'}}
-    }
+    options:{responsive:true, maintainAspectRatio:false, scales:{x:{type:'category'}, y:{beginAtZero:true}}, plugins:{legend:{position:'bottom'}}}
   });
   document.getElementById('n2').textContent = "Cumul des points par profil";
 
@@ -419,12 +538,8 @@ function renderCharts(filtre) {
   const counts = bins.map(([a,b]) => allPicks.filter(x => x.s >= a && x.s < b).length);
   charts.c3 = new Chart(document.getElementById('c3'), {
     type:'bar',
-    data:{labels: bins.map(([a,b]) => `${a}–${b}`),
-          datasets:[{ label:'Picks', data: counts,
-            backgroundColor: getCss('--P1') }]},
-    options:{responsive:true, maintainAspectRatio:false,
-      plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true}}
-    }
+    data:{labels: bins.map(([a,b]) => `${a}–${b}`), datasets:[{ label:'Picks', data: counts, backgroundColor: getCss('--P1') }]},
+    options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true}}}
   });
 
   destroyChart('c4');
@@ -434,87 +549,53 @@ function renderCharts(filtre) {
       label: p, backgroundColor: getCss(`--P${i%6}`),
       data: (SEED[p]||[]).filter(x => x.s !== undefined).map(x => ({x:x.m||0, y:x.s}))
     }))},
-    options:{responsive:true, maintainAspectRatio:false,
-      scales:{x:{title:{display:true,text:'Malus'}}, y:{title:{display:true,text:'Score'}}},
-      plugins:{legend:{position:'bottom'}}
-    }
+    options:{responsive:true, maintainAspectRatio:false, scales:{x:{title:{display:true,text:'Malus'}}, y:{title:{display:true,text:'Score'}}}, plugins:{legend:{position:'bottom'}}}
   });
 
   destroyChart('c5');
   const topM5 = [...ALL0].sort((a,b)=>b.m5-a.m5).slice(0,15);
   charts.c5 = new Chart(document.getElementById('c5'), {
     type:'bar',
-    data:{ labels: topM5.map(x=>x.j),
-      datasets:[{ data: topM5.map(x=>x.m5), backgroundColor: getCss('--P2') }]},
-    options:{indexAxis:'y', responsive:true, maintainAspectRatio:false,
-      plugins:{legend:{display:false}}}
+    data:{ labels: topM5.map(x=>x.j), datasets:[{ data: topM5.map(x=>x.m5), backgroundColor: getCss('--P2') }]},
+    options:{indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}}
   });
   document.getElementById('t5').textContent = "Top 15 forme récente";
 
+  // Scatter charts avec mise en évidence
   destroyChart('c6');
   charts.c6 = new Chart(document.getElementById('c6'), {
-    type:'scatter',
-    data:{datasets:[{
-      label:'Joueurs', backgroundColor: getCss('--P3'),
-      data: ALL0.filter(x=>x.g>=3).map(x=>({x:x.sd, y:x.s, j:x.j}))
-    }]},
-    options:{responsive:true, maintainAspectRatio:false,
-      scales:{x:{title:{display:true,text:'Écart-type'}}, y:{title:{display:true,text:'Moyenne'}}},
-      plugins:{legend:{display:false}, tooltip:{callbacks:{label: c => `${c.raw.j}: ${c.raw.y.toFixed(1)} (σ=${c.raw.x.toFixed(1)})`}}}
-    }
+    type:'scatter', data:{datasets: getScatterData(ALL0, 'sd', 's')},
+    options:{responsive:true, maintainAspectRatio:false, scales:{x:{title:{display:true,text:'Écart-type'}}, y:{title:{display:true,text:'Moyenne'}}}, plugins:{legend:{display:false}, tooltip:{callbacks:{label: c => `${c.raw.j}: ${c.raw.y.toFixed(1)} (σ=${c.raw.x.toFixed(1)})`}}}}
   });
 
   destroyChart('c7');
   const top20 = [...ALL0].sort((a,b)=>b.s-a.s).slice(0,20);
   charts.c7 = new Chart(document.getElementById('c7'), {
     type:'bar',
-    data:{ labels: top20.map(x=>x.j),
-      datasets:[
+    data:{ labels: top20.map(x=>x.j), datasets:[
         { label:'P20', data: top20.map(x=>x.p20), backgroundColor: getCss('--P3') },
         { label:'P50', data: top20.map(x=>x.p50), backgroundColor: getCss('--P1') },
         { label:'P80', data: top20.map(x=>x.p80), backgroundColor: getCss('--P0') }
-      ]},
-    options:{indexAxis:'y', responsive:true, maintainAspectRatio:false,
-      scales:{x:{beginAtZero:true}}}
+    ]},
+    options:{indexAxis:'y', responsive:true, maintainAspectRatio:false, scales:{x:{beginAtZero:true}}}
   });
 
   destroyChart('c8');
   charts.c8 = new Chart(document.getElementById('c8'), {
-    type:'scatter',
-    data:{datasets:[{
-      label:'Joueurs', backgroundColor: getCss('--P0'),
-      data: ALL0.filter(x=>x.g>=3).map(x=>({x:x.u35, y:x.s, j:x.j}))
-    }]},
-    options:{responsive:true, maintainAspectRatio:false,
-      scales:{x:{title:{display:true,text:'% matchs ≥ 35'}}, y:{title:{display:true,text:'Moyenne'}}},
-      plugins:{legend:{display:false}, tooltip:{callbacks:{label: c => `${c.raw.j}: ${c.raw.y.toFixed(1)}`}}}
-    }
+    type:'scatter', data:{datasets: getScatterData(ALL0, 'u35', 's')},
+    options:{responsive:true, maintainAspectRatio:false, scales:{x:{title:{display:true,text:'% matchs ≥ 35'}}, y:{title:{display:true,text:'Moyenne'}}}, plugins:{legend:{display:false}, tooltip:{callbacks:{label: c => `${c.raw.j}: ${c.raw.y.toFixed(1)}`}}}}
   });
 
   destroyChart('c9');
   charts.c9 = new Chart(document.getElementById('c9'), {
-    type:'scatter',
-    data:{datasets:[{
-      label:'Joueurs', backgroundColor: getCss('--P4'),
-      data: ALL0.filter(x=>x.g>=3).map(x=>({x:x.mn, y:x.tpm, j:x.j}))
-    }]},
-    options:{responsive:true, maintainAspectRatio:false,
-      scales:{x:{title:{display:true,text:'Minutes moy.'}}, y:{title:{display:true,text:'Score / minute'}}},
-      plugins:{legend:{display:false}, tooltip:{callbacks:{label: c => `${c.raw.j}: ${c.raw.y.toFixed(2)}`}}}
-    }
+    type:'scatter', data:{datasets: getScatterData(ALL0, 'mn', 'tpm')},
+    options:{responsive:true, maintainAspectRatio:false, scales:{x:{title:{display:true,text:'Minutes moy.'}}, y:{title:{display:true,text:'Score / minute'}}}, plugins:{legend:{display:false}, tooltip:{callbacks:{label: c => `${c.raw.j}: ${c.raw.y.toFixed(2)}`}}}}
   });
 
   destroyChart('c10');
   charts.c10 = new Chart(document.getElementById('c10'), {
-    type:'scatter',
-    data:{datasets:[{
-      label:'Joueurs', backgroundColor: getCss('--P5'),
-      data: ALL0.filter(x=>x.g>=3).map(x=>({x:x.sd, y:x.s, j:x.j}))
-    }]},
-    options:{responsive:true, maintainAspectRatio:false,
-      scales:{x:{title:{display:true,text:'Écart-type'}}, y:{title:{display:true,text:'Moyenne'}}},
-      plugins:{legend:{display:false}, tooltip:{callbacks:{label: c => `${c.raw.j}: ${c.raw.y.toFixed(1)} (σ=${c.raw.x.toFixed(1)})`}}}
-    }
+    type:'scatter', data:{datasets: getScatterData(ALL0, 'sd', 's')},
+    options:{responsive:true, maintainAspectRatio:false, scales:{x:{title:{display:true,text:'Écart-type'}}, y:{title:{display:true,text:'Moyenne'}}}, plugins:{legend:{display:false}, tooltip:{callbacks:{label: c => `${c.raw.j}: ${c.raw.y.toFixed(1)} (σ=${c.raw.x.toFixed(1)})`}}}}
   });
 }
 
@@ -523,8 +604,7 @@ function getCss(varName) {
 }
 
 function renderPicksTable(filtre) {
-  const picks = (filtre ? (SEED[filtre]||[]) : PL)
-    .slice().sort((a,b) => (b.iso||"").localeCompare(a.iso||""));
+  const picks = (filtre ? (SEED[filtre]||[]) : PL).slice().sort((a,b) => (b.iso||"").localeCompare(a.iso||""));
   const t = document.getElementById('t');
   t.innerHTML = `
     <thead><tr>
@@ -559,11 +639,13 @@ function renderPlayersTable() {
   if (vue === 'base') {
     pt.innerHTML = `
       <thead><tr>
+        <th style="width:30px"></th>
         <th>Joueur</th><th>Éq.</th><th>Pos.</th><th class="r">Matchs</th>
         <th class="r">Min</th><th class="r">Moy.</th><th class="r">5 derniers</th><th class="r">σ</th>
       </tr></thead>
       <tbody>${data.slice(0,120).map(p => `
         <tr>
+          <td><input type="checkbox" class="cmp-chk" data-j="${p.j}" ${cmpSelection.has(p.j)?'checked':''}></td>
           <td>${p.j}</td><td>${p.t}</td><td>${p.p}</td>
           <td class="r">${p.g}</td><td class="r">${p.mn}</td>
           <td class="r"><b>${p.s}</b></td><td class="r">${p.m5}</td>
@@ -573,12 +655,14 @@ function renderPlayersTable() {
   } else {
     pt.innerHTML = `
       <thead><tr>
+        <th style="width:30px"></th>
         <th>Joueur</th><th>Éq.</th><th>Pos.</th>
         <th class="r">Moy.</th><th class="r">P20</th><th class="r">P50</th><th class="r">P80</th>
         <th class="r">%≥35</th><th class="r">σ</th>
       </tr></thead>
       <tbody>${data.slice(0,120).map(p => `
         <tr>
+          <td><input type="checkbox" class="cmp-chk" data-j="${p.j}" ${cmpSelection.has(p.j)?'checked':''}></td>
           <td>${p.j}</td><td>${p.t}</td><td>${p.p}</td>
           <td class="r">${p.s}</td><td class="r">${p.p20}</td>
           <td class="r">${p.p50}</td><td class="r">${p.p80}</td>
@@ -586,7 +670,54 @@ function renderPlayersTable() {
         </tr>`).join('')}
       </tbody>`;
   }
+
+  // Attacher les événements de case à cocher
+  document.querySelectorAll('.cmp-chk').forEach(chk => {
+    chk.addEventListener('change', (e) => {
+      const j = e.target.dataset.j;
+      if (e.target.checked) cmpSelection.add(j);
+      else cmpSelection.delete(j);
+      updateCmpBtn();
+    });
+  });
 }
+
+function updateCmpBtn() {
+  const btn = document.getElementById('cmp-btn');
+  btn.textContent = `Comparer (${cmpSelection.size})`;
+  btn.style.display = cmpSelection.size > 0 ? 'block' : 'none';
+}
+
+document.getElementById('cmp-btn').onclick = () => {
+  const modal = document.getElementById('cmp-modal');
+  const table = document.getElementById('cmp-table');
+  const players = ALL0.filter(x => cmpSelection.has(x.j));
+  
+  let html = `<thead><tr><th>Statistique</th>${players.map(p=>`<th>${p.j}</th>`).join('')}</tr></thead><tbody>`;
+  
+  const row = (label, fn) => `<tr><td><b>${label}</b></td>${players.map(p=>`<td class="r">${fn(p)}</td>`).join('')}</tr>`;
+  
+  html += row('Équipe / Pos', p => `${p.t} · ${p.p}`);
+  html += row('Matchs joués', p => p.g);
+  html += row('Moyenne TTFL', p => `<b>${p.s.toFixed(1)}</b>`);
+  html += row('Forme (5 dern.)', p => p.m5.toFixed(1));
+  html += row('Écart-type (σ)', p => p.sd.toFixed(1));
+  html += row('Plancher (P20)', p => p.p20.toFixed(1));
+  html += row('Médiane (P50)', p => p.p50.toFixed(1));
+  html += row('Plafond (P80)', p => p.p80.toFixed(1));
+  html += row('% Matchs ≥ 35', p => `${p.u35}%`);
+  html += row('Minutes moy.', p => p.mn.toFixed(1));
+  html += row('Rendement (/min)', p => p.tpm.toFixed(2));
+  
+  html += '</tbody>';
+  table.innerHTML = html;
+  modal.classList.add('open');
+};
+
+document.getElementById('cmp-close').onclick = () => document.getElementById('cmp-modal').classList.remove('open');
+document.getElementById('cmp-modal').onclick = (e) => {
+  if (e.target.id === 'cmp-modal') e.target.classList.remove('open');
+};
 
 function remplirSelecteurs() {
   const ip = document.getElementById('ip');
@@ -606,7 +737,10 @@ function remplirSelecteurs() {
 /* ============================================================
    ÉVÉNEMENTS
    ============================================================ */
-document.getElementById('q').addEventListener('input', renderPlayersTable);
+document.getElementById('q').addEventListener('input', () => {
+  renderPlayersTable();
+  renderCharts(); // Mise à jour des graphiques pour la recherche
+});
 document.getElementById('tv').addEventListener('change', renderPlayersTable);
 document.getElementById('fl').addEventListener('change', renderPlayersTable);
 
