@@ -35,7 +35,7 @@ button.b{cursor:pointer;font-weight:600}button.pri{background:var(--tx);color:va
 .drop{border:2px dashed var(--bd);border-radius:12px;padding:18px;text-align:center;color:var(--mut);cursor:pointer}.drop.ov{border-color:var(--tx);background:var(--hl)}
 .msg{margin:10px 0 0;padding:10px 12px;border-radius:10px;background:var(--hl);font-size:14px}.msg:empty{display:none}.msg.er{color:var(--bad)}
 .ft{display:flex;justify-content:space-between;align-items:baseline;gap:8px}.nm2{font-size:19px;font-weight:700}.big{font-size:34px;font-weight:700;line-height:1}.bar{display:flex;height:10px;border-radius:6px;overflow:hidden;margin:10px 0 4px}.bar i{display:block;height:100%}.r2{display:flex;justify-content:space-between;gap:8px;padding:5px 0;border-bottom:1px solid var(--bd);font-size:14px}.sw{display:inline-block;width:10px;height:10px;border-radius:3px;margin:0 4px 0 10px}.leg{font-size:13px;color:var(--mut);margin:6px 0 0}.leg i{display:inline-block;width:10px;height:10px;border-radius:2px;margin:0 4px 0 10px}.hlp{font-size:13px;color:var(--mut)}
-/* Styles ajoutés pour les cartes détaillées et le comparateur */
+/* Styles ajoutés pour les cartes détaillées */
 .g-card{display:flex;flex-direction:column;gap:8px}
 .g-card .g-desc{font-size:13px;color:var(--mut);margin-bottom:10px;line-height:1.4}
 .g-card .g-name{font-size:20px;font-weight:800;display:flex;justify-content:space-between;align-items:baseline}
@@ -46,19 +46,6 @@ button.b{cursor:pointer;font-weight:600}button.pri{background:var(--tx);color:va
 .g-card .g-bar i{display:block;height:100%}
 .g-card .g-legend{font-size:12px;color:var(--mut);display:flex;gap:12px}
 .g-card .g-next{font-size:13px;color:var(--mut);margin-top:8px;padding-top:8px;border-top:1px solid var(--bd);line-height:1.4}
-/* Floating Compare Button */
-#cmp-btn{position:fixed;bottom:24px;right:24px;background:var(--tx);color:var(--bg);padding:12px 24px;border-radius:99px;font-weight:700;font-size:16px;border:none;box-shadow:0 4px 12px rgba(0,0,0,.15);cursor:pointer;display:none;z-index:50;transition:transform .2s}
-#cmp-btn:hover{transform:scale(1.05)}
-/* Modal */
-.modal{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;z-index:100;padding:16px}
-.modal.open{display:flex}
-.modal-inner{background:var(--card);border-radius:16px;width:100%;max-width:900px;max-height:90vh;overflow-y:auto;padding:24px;position:relative}
-.modal-inner h2{margin:0 0 16px}
-.modal-close{position:absolute;top:16px;right:16px;background:none;border:none;font-size:24px;color:var(--mut);cursor:pointer}
-.cmp-table{width:100%;border-collapse:collapse;font-size:14px;margin-top:10px}
-.cmp-table th,.cmp-table td{padding:10px;border-bottom:1px solid var(--bd);text-align:left}
-.cmp-table th{font-weight:600;color:var(--mut);background:var(--hl)}
-.cmp-table td.r{text-align:right}
 </style>
 </head>
 <body>
@@ -162,35 +149,25 @@ button.b{cursor:pointer;font-weight:600}button.pri{background:var(--tx);color:va
   </div>
 </div>
 
-<button id="cmp-btn">Comparer (0)</button>
-
-<div class="modal" id="cmp-modal">
-  <div class="modal-inner">
-    <button class="modal-close" id="cmp-close">&times;</button>
-    <h2>Comparaison de joueurs</h2>
-    <div style="overflow-x:auto"><table class="cmp-table" id="cmp-table"></table></div>
-  </div>
-</div>
-
 <script>
 /* ============================================================
-   POSITIONS
+   POSITIONS (Dictionnaire sans accents)
    ============================================================ */
 const POS = {"luka doncic":"PG","anthony edwards":"SG","stephen curry":"PG","shai gilgeous-alexander":"PG","victor wembanyama":"C","giannis antetokounmpo":"PF","jayson tatum":"SF","tyrese maxey":"PG","ty jerome":"PG","jalen brunson":"PG","darius acuff jr.":"PG","devin booker":"SG","austin reaves":"SG","paolo banchero":"PF","jamal murray":"PG","cooper flagg":"SF","donovan mitchell":"SG","scottie barnes":"PF","anthony davis":"PF","cade cunningham":"PG","nikola jokic":"C","deni avdija":"SF","jaylen brown":"SF","nickeil alexander-walker":"SG","tyrese haliburton":"PG","rj barrett":"SF","michael porter jr.":"SF","alperen sengun":"C","tyler herro":"SG","kyrie irving":"PG","zach lavine":"SG","pascal siakam":"PF","darius garland":"PG","yaxel lendeborg":"SF","keyonte george":"PG","zion williamson":"PF","karl-anthony towns":"C","kevin durant":"SF","franz wagner":"SF","brandon miller":"SF","paul george":"PF","julius randle":"PF","jalen johnson":"PF","kawhi leonard":"SF","damian lillard":"PG","norman powell":"SG","caleb wilson":"PF","ajay mitchell":"SG","bam adebayo":"C","kyshawn george":"SG","evan mobley":"PF","trae young":"PG","lamelo ball":"PG","duncan robinson":"SF","ayo dosunmu":"SG","dylan harper":"SG","lauri markkanen":"PF","joel embiid":"C","andrew nembhard":"SG","desmond bane":"SG","immanuel quickley":"PG","jabari smith jr.":"PF","jaden mcdaniels":"PF","miles bridges":"PF","dillon brooks":"SF","naz reid":"C","og anunoby":"PF","jaren jackson jr.":"C","davion mitchell":"PG","saddiq bey":"SF","aj dybantsa":"SF","jeremiah fears":"PG","ja morant":"PG","brandin podziemski":"SG","anthony black":"PG","james harden":"PG","cameron boozer":"PF","lebron james":"PF","trey murphy iii":"SF","amen thompson":"SF","stephon castle":"SG","domantas sabonis":"C","jaime jaquez jr.":"SF","tristan da silva":"SF","dejounte murray":"PG","aaron wiggins":"SG","wendell carter jr.":"C","darryn peterson":"SG","p.j. washington":"PF","klay thompson":"SF","rui hachimura":"PF","walker kessler":"C","brook lopez":"C","grayson allen":"SG","obi toppin":"PF","cedric coward":"SG","de'aaron fox":"PG","jalen williams":"SF","matas buzelis":"SF","christian braun":"SG","onyeka okongwu":"C","fred vanvleet":"PG","jarrett allen":"C","vj edgecombe":"SG","toumani camara":"PF","de'andre hunter":"SF","jalen duren":"C","jrue holiday":"PG","spencer jones":"SF","mikel brown jr.":"PG","cj mccollum":"PG","nolan traore":"PG","derrick white":"PG","payton pritchard":"PG","jalen green":"SG","aaron gordon":"PF","jonathan kuminga":"SF","meleek thomas":"SG","keaton wagler":"SG","paul reed":"C","jared mccain":"SG","aaron nesmith":"SF","derik queen":"C","chet holmgren":"PF","ace bailey":"SF","donovan clingan":"C","naji marshall":"SF","isaiah stewart":"C","devin vassell":"SG","daniss jenkins":"PG","jalen smith":"C","kyle kuzma":"PF","peyton watson":"SF","derrick jones jr.":"SF","pelle larsson":"SG","terrence shannon jr.":"SG","brandon williams":"PG","ziaire williams":"SF","ja'kobe walter":"SG","cameron johnson":"PF","demar derozan":"SF","collin murray-boyles":"PF","ryan rollins":"PG","jaylen wells":"SG","alex sarr":"C","brayden burries":"SG","precious achiuwa":"C","moritz wagner":"C","josh giddey":"PG","tre jones":"PG","dennis schroder":"PG","santi aldama":"PF","julian champagnie":"SF","quenton jackson":"PG","reed sheppard":"PG","kobe sanders":"SG","dyson daniels":"SF","luguentz dort":"PF","daniel gafford":"C","danny wolf":"C","jerami grant":"PF","tre johnson":"SG","karlo matkovic":"PF","yves missi":"C","neemias queta":"C","collin sexton":"SG","ausar thompson":"SF","tari eason":"PF","de'anthony melton":"SG","landry shamet":"SG","john collins":"PF","kris dunn":"SG","marcus smart":"PG","anfernee simons":"SG","max strus":"SF","moussa diabate":"C","cam spencer":"SG","josh hart":"SF","jaxson hayes":"C","isaiah jackson":"C","sandro mamukelashvili":"C","malik monk":"SG","kel'el ware":"C","kingston flemings":"PG","bones hyland":"PG","kelly oubre jr.":"SF","javon small":"PG","scoot henderson":"PG","mario hezonja":"PF","kevin huerter":"SG","zach edey":"C","luke kennard":"SG","andrew wiggins":"SF","thomas bryant":"C","keldon johnson":"PF","georges niang":"PF","jamison battle":"SF","aday mara":"C","quentin grimes":"SG","keegan murray":"PF","jalen suggs":"PG","nate ament":"SF","egor demin":"PG","rudy gobert":"C","jordan goodwin":"PG","jaylon tyson":"SF","mo bamba":"C","sam hauser":"PF","corey kispert":"SF","sam merrill":"SG","morez johnson jr.":"C","bennett stirtz":"PG","ivica zubac":"C","a.j. green":"SG","day'ron sharpe":"C","trevon brazile":"PF","gg jackson ii":"PF","khaman maluach":"C","zaccharie risacher":"SF","jarace walker":"PF","robert williams":"C","justin champagnie":"SF","walter clayton":"PG","isaiah joe":"SG","brice sensabaugh":"SF","jamal cain":"SF","bilal coulibaly":"SF","trendon watford":"PF","charles bassey":"C","jay huff":"C","leonard miller":"SF","jakob poeltl":"C","matisse thybulle":"SF","myles turner":"C","alex caruso":"SG","gradey dick":"SG","luka garza":"C","bobby portis":"PF","isaiah hartenstein":"C","collin gillespie":"PG","kenrich williams":"PF","miles mcbride":"SG","mikal bridges":"SF","gui santos":"PF","jordan clarkson":"SG","oso ighodaro":"C","kasparas jakucionis":"SG","trey lyles":"PF","scotty pippen jr.":"PG","mitchell robinson":"C","jock landale":"C","jake laravia":"PF","alijah martin":"SG","cason wallace":"SG","isaiah collier":"PG","max christie":"SG","sidy cissoko":"SF","javonte green":"SG","tidjane salaun":"PF","marvin bagley iii":"PF","bryce hopkins":"SF","deandre jordan":"C","bennedict mathurin":"SF","t.j. mcconnell":"PG","jordan poole":"SG","tyrese proctor":"PG","jamal shead":"PG","coby white":"PG","jase richardson":"SG","marcus sasser":"PG","baylor scheierman":"SF","leaky black":"SF","sion james":"SG","isaac okoro":"SG","kentavious caldwell-pope":"SF","dylan cardwell":"C","bub carrington":"PG","zuby ejiofor":"PF","ron holland":"SF","quinten post":"C","joan beringer":"C","ryan dunn":"SF","buddy hield":"SG","herbert jones":"SF","chris youngblood":"SG","patrick williams":"PF","deandre ayton":"C","sergio de larrea":"PG","noa essengue":"PF","jabari walker":"PF","harrison barnes":"PF","will richard":"SG","bogdan bogdanovic":"SG","noah clowney":"PF","andre drummond":"C","al horford":"C","graham ike":"C","dalton knecht":"SF","gary payton ii":"SG","john tonje":"SG","emanuel sharp":"SG","chaney johnson":"SF","kobe brown":"PF","jaylen clark":"SG","yang hansen":"C","larry nance jr.":"PF","royce o'neale":"SF","tim hardaway jr.":"SG","jaylin sellers":"PG","ryan kalkbrenner":"C","josh minott":"SF","keon ellis":"SG","allen graves":"PF","chaz lanier":"SG","micah peavy":"SG","braden smith":"PG","caleb martin":"SG","ryan conwell":"SG","steven adams":"C","jevon carter":"PG","nic claxton":"C","rayj dennis":"PG","riley minix":"SF","jordan walsh":"PF","cam whitmore":"SF","josh green":"SG","hugo gonzalez":"SG","jalen slawson":"SF","goga bitadze":"C","asa newell":"PF","micah potter":"C","baba miller":"SF","zeke nnaji":"PF","jordan hawkins":"SG","nick martinelli":"SF","josh okogie":"SG","duop reath":"C","svi mykhailiuk":"SF","clint capela":"C","luke kornet":"C","dean wade":"PF","ousmane dieng":"C","colin castleton":"C","mike conley":"PG","trayce jackson-davis":"C","kon knueppel":"SF","liam mcneeley":"SF","jonathan mogbo":"PF","ryan nembhard":"PG","daeqwon plowden":"SG","olivier-maxence prosper":"PF","ben sheppard":"SG","hannes steinbach":"PF","adou thiero":"SF","gary trent jr.":"SG","draymond green":"PF","tyus jones":"PG","jaylin williams":"C","christian anderson jr.":"PG","oscar tshiebwe":"C","chris cenac jr.":"PF","vit krejci":"PG","carter bryant":"PF","lj cryer":"PG","kyle filipowski":"C","jose alvarado":"PG","mohamed diawara":"SF","ja'kobi gillespie":"PG","taylor hendricks":"PF","labaron philon jr.":"PG","dru smith":"SG","dailyn swain":"SG","jett howard":"SF","nikola jovic":"PF","khris middleton":"SF","nikola vucevic":"C","isaiah crawford":"SF","josh dix":"SG","tristan enaruna":"SF","adem bona":"C","tyler kolek":"PG","tobe awaka":"PF","jamaree bouyea":"PG","jaden bradley":"PG","branden carlson":"C","pacome dadiet":"SG","jayson kent":"SF","bogoljub markovic":"PF","taurean prince":"SF","zyon pullin":"SG","tarris reed jr.":"C","will riley":"SF","rayan rupert":"SF","ben saraf":"SG","bruce thornton":"PG","james wiseman":"C","jalen pickett":"SG","moussa cisse":"C","nique clifford":"SG","ron harper jr.":"SF","kevon looney":"C","zach collins":"C","tobi lawal":"PF","kris murray":"SF","ebuka okorie":"PG","koa peat":"PF","brooks barnhizer":"SG","cam christie":"SG","alex karaban":"SF","bryce mcgowens":"SG","nick richards":"C","alpha diallo":"SF","justin edwards":"SF","jaden hardy":"SG","karim lopez":"SF","jarred vanderbilt":"PF","kyle anderson":"SF","tony bradley":"C","carson cooper":"PF","dorian finney-smith":"PF","daron holmes":"PF","aj johnson":"SG","david jones garcia":"SF","tre mann":"PG","chris manon":"SG","jordan mclaughlin":"PG","julian reese":"C","pat spencer":"PG","dalen terry":"SG","blake wesley":"SG","tolu smith":"PF","simone fontecchio":"SF","myron gardner":"SF","bronny james":"SG","alex morales":"PG","isaac jones":"PF","jahmai mashack":"SG","drake powell":"SG","craig porter jr.":"PG","rasheer fleming":"PF","anthony gill":"PF","felix okpara":"C","malevy leons":"SF","terance mann":"SG","jericho sims":"C","jaden akins":"SG","reece beekman":"PG","maliq brown":"PF","cameron carr":"SG","isaiah evans":"SG","tacko fall":"C","pj hall":"C","elijah harkless":"SG","joshua jefferson":"PF","caleb love":"SG","lawson lovering":"C","dillon mitchell":"SF","norchad omier":"PF","jae'sean tate":"SF","cody williams":"SG","rocco zikarsky":"C"};
 
 /* ============================================================
-   ÉTAT
+   ÉTAT & OUTILS
    ============================================================ */
 let SEED = {};
 let BOX  = {};
 let ALL0 = [];
 let PL   = [];
 let charts = {};
-let cmpSelection = new Set();
 
-/* ============================================================
-   FORMULE TTFL OFFICIELLE
-   ============================================================ */
+// Fonction de normalisation (retire les accents)
+const normStr = s => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+
+// Formule TTFL officielle
 function ttflScore(b) {
   const fgm = +b.fgm||0, fga = +b.fga||0;
   const tpm = +b.tpm||0, tpa = +b.tpa||0;
@@ -248,7 +225,7 @@ async function chargerDonnees() {
 }
 
 /* ============================================================
-   AGRÉGATION BOX -> ALL0 (avec sous-scores pour les styles)
+   AGRÉGATION BOX -> ALL0
    ============================================================ */
 function computeAggregates(box) {
   const byPlayer = {};
@@ -282,9 +259,9 @@ function computeAggregates(box) {
     const u25 = Math.round(100 * scores.filter(s => s >= 25).length / n);
     
     const team = Object.entries(info.teams).sort((a,b)=>b[1]-a[1])[0]?.[0] || "?";
-    const pos = POS[name.toLowerCase()] || "?";
+    const pos = POS[normStr(name)] || "?";
 
-    // Sous-scores pour les styles
+    // Sous-scores pour les styles (pour la barre colorée)
     const sum_scoring = games.reduce((a,g)=>a+(g.pts + g.fgm + g.tpm + g.ftm),0);
     const sum_pm = games.reduce((a,g)=>a+(g.ast + g.stl),0);
     const sum_rb = games.reduce((a,g)=>a+(g.reb + g.blk),0);
@@ -409,31 +386,28 @@ function renderGalerie() {
   
   // 1. Top 5 par catégories simples (Logique corrigée)
   const styles = [
-    { titre: "Réguliers",        tri: x => -x.s },
-    { titre: "Explosifs",        tri: x => -x.p80 },
-    { titre: "Valeurs sûres",    tri: x => -(x.s / Math.max(1, x.sd)) }, // Meilleur ratio moyenne / écart-type
-    { titre: "Bon marché (min)", tri: x => -x.tpm }, // Meilleur rendement par minute (filtré plus bas)
-    { titre: "Forme récente",    tri: x => -x.m5 },
-    { titre: "Volumes rebonds",  tri: x => -x.rb }
+    { titre: "Réguliers",        tri: x => -x.s,                     cond: x => x.s >= 15 },
+    { titre: "Explosifs",        tri: x => -x.p80,                   cond: x => x.s >= 15 },
+    { titre: "Valeurs sûres",    tri: x => (x.sd / Math.max(1, x.s)), cond: x => x.s >= 20 }, // Rendement/constance
+    { titre: "Bon marché (min)", tri: x => -x.tpm,                   cond: x => x.mn >= 15 && x.s >= 12 }, // Rendement/min
+    { titre: "Forme récente",    tri: x => -x.m5,                    cond: x => x.s >= 15 },
+    { titre: "Volumes rebonds",  tri: x => -x.rb,                    cond: x => x.s >= 15 }
   ];
   
   styles.forEach(st => {
-    // Filtres de sécurité pour éviter les "faux" profils
-    let pool = elig.filter(x => x.s >= 15); 
-    if (st.titre === "Bon marché (min)") pool = elig.filter(x => x.mn >= 15 && x.s >= 10);
-    
+    const pool = elig.filter(st.cond);
     const top = [...pool].sort((a,b) => st.tri(a) - st.tri(b)).slice(0, 5);
     const card = document.createElement('div');
     card.className = 'card';
     card.innerHTML = `<h3>${st.titre}</h3><p class="n">Top 5</p>` +
       top.map((p, idx) =>
-        `<div class="r2"><span>${idx+1}. <span class="dot" style="background:var(--${'P'+(idx%6)})"></span>${p.j} <span class="lk">(${p.t})</span></span><span>${st.titre.includes('min') ? p.tpm.toFixed(2) : p.s.toFixed(1)}</span></div>`
+        `<div class="r2"><span>${idx+1}. <span class="dot" style="background:var(--${'P'+(idx%6)})"></span>${p.j} <span class="lk">(${p.t})</span></span><span>${st.titre.includes('min') ? p.tpm.toFixed(2) : (st.titre.includes('sûres') ? (p.sd/Math.max(1,p.s)).toFixed(2) : p.s.toFixed(1))}</span></div>`
       ).join('');
     gal.appendChild(card);
   });
   galn.textContent = `Basé sur ${elig.length} joueurs éligibles (≥ 3 matchs).`;
 
-  // 2. Cartes de style détaillées (Scoreurs, Playmakers, etc.)
+  // 2. Cartes de style détaillées
   const catDefs = [
     { id:'Scoreurs', emoji:'🎯', desc:'Leur score vient des points et des tirs réussis. Gros plafond, mais lourds malus les soirs sans adresse.', tri: x=>x.sum_sc },
     { id:'Playmakers', emoji:'🎩', desc:'Leur score vient des passes décisives et des interceptions, contre-balancées par les balles perdues.', tri: x=>x.sum_pm },
@@ -484,23 +458,84 @@ function renderGalerie() {
 
 function destroyChart(id) { if (charts[id]) { charts[id].destroy(); delete charts[id]; } }
 
+// Plugin Chart.js personnalisé pour dessiner les noms à côté des points recherchés
+const customLabelsPlugin = {
+  id: 'customLabels',
+  afterDatasetsDraw(chart) {
+    const { ctx } = chart;
+    const meta = chart.getDatasetMeta(1); // Dataset 1 = Recherche
+    if (!meta || !meta.data || meta.hidden) return;
+    
+    ctx.save();
+    ctx.font = 'bold 13px system-ui, sans-serif';
+    ctx.fillStyle = getCss('--tx');
+    ctx.textBaseline = 'middle';
+    
+    meta.data.forEach((element, index) => {
+      const pt = chart.data.datasets[1].data[index];
+      if (pt) {
+        const isRight = element.x > chart.width - 120;
+        ctx.textAlign = isRight ? 'right' : 'left';
+        const offset = isRight ? -12 : 12;
+        ctx.fillText(pt.j, element.x + offset, element.y);
+      }
+    });
+    ctx.restore();
+  }
+};
+
+function renderScatterChart(id, dataArr, xKey, yKey, xLabel, yLabel, q) {
+  destroyChart(id);
+  const base = dataArr.filter(x=>x.g>=3);
+  const normal = [], match = [];
+  
+  base.forEach(x => {
+    const obj = { x: x[xKey], y: x[yKey], j: x.j, t: x.t };
+    if (q && (normStr(x.j).includes(normStr(q)) || normStr(x.t).includes(normStr(q)))) match.push(obj);
+    else normal.push(obj);
+  });
+
+  const datasets = [
+    {
+      label: 'Autres',
+      data: normal,
+      backgroundColor: 'rgba(150,150,150,0.15)',
+      pointRadius: 4,
+      pointHoverRadius: 6
+    },
+    {
+      label: 'Recherche',
+      data: match,
+      backgroundColor: 'var(--P0)',
+      borderColor: 'var(--tx)',
+      borderWidth: 2,
+      pointRadius: 8,
+      pointHoverRadius: 10,
+      z: 10 // Au premier plan
+    }
+  ];
+
+  charts[id] = new Chart(document.getElementById(id), {
+    type: 'scatter',
+    data: { datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      scales: {
+        x: { title: { display: true, text: xLabel } },
+        y: { title: { display: true, text: yLabel } }
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: c => `${c.raw.j}: ${c.raw.y.toFixed(1)}` } }
+      }
+    },
+    plugins: [customLabelsPlugin]
+  });
+}
+
 function renderCharts(filtre) {
   const profils = filtre ? [filtre] : Object.keys(SEED);
-  const q = (document.getElementById('q').value || '').toLowerCase();
-
-  // Helper pour séparer les points normaux et les points recherchés
-  const getScatterData = (arr, xKey, yKey) => {
-    const base = arr.filter(x=>x.g>=3).map(x=>({ x: x[xKey], y: x[yKey], j: x.j, t: x.t }));
-    const normal = [], match = [];
-    base.forEach(pt => {
-      if (q && (pt.j.toLowerCase().includes(q) || pt.t.toLowerCase().includes(q))) match.push(pt);
-      else normal.push(pt);
-    });
-    return [
-      { label: 'Autres', data: normal, backgroundColor: 'rgba(150,150,150,0.15)', pointRadius: 4 },
-      { label: 'Recherche', data: match, backgroundColor: 'var(--P1)', pointRadius: 10, borderColor: '#fff', borderWidth: 2 }
-    ];
-  };
+  const q = (document.getElementById('q').value || '').trim();
 
   destroyChart('c1');
   const datasets1 = profils.map((p, i) => {
@@ -562,12 +597,7 @@ function renderCharts(filtre) {
   document.getElementById('t5').textContent = "Top 15 forme récente";
 
   // Scatter charts avec mise en évidence
-  destroyChart('c6');
-  charts.c6 = new Chart(document.getElementById('c6'), {
-    type:'scatter', data:{datasets: getScatterData(ALL0, 'sd', 's')},
-    options:{responsive:true, maintainAspectRatio:false, scales:{x:{title:{display:true,text:'Écart-type'}}, y:{title:{display:true,text:'Moyenne'}}}, plugins:{legend:{display:false}, tooltip:{callbacks:{label: c => `${c.raw.j}: ${c.raw.y.toFixed(1)} (σ=${c.raw.x.toFixed(1)})`}}}}
-  });
-
+  renderScatterChart('c6', ALL0, 'sd', 's', 'Écart-type', 'Moyenne', q);
   destroyChart('c7');
   const top20 = [...ALL0].sort((a,b)=>b.s-a.s).slice(0,20);
   charts.c7 = new Chart(document.getElementById('c7'), {
@@ -579,24 +609,9 @@ function renderCharts(filtre) {
     ]},
     options:{indexAxis:'y', responsive:true, maintainAspectRatio:false, scales:{x:{beginAtZero:true}}}
   });
-
-  destroyChart('c8');
-  charts.c8 = new Chart(document.getElementById('c8'), {
-    type:'scatter', data:{datasets: getScatterData(ALL0, 'u35', 's')},
-    options:{responsive:true, maintainAspectRatio:false, scales:{x:{title:{display:true,text:'% matchs ≥ 35'}}, y:{title:{display:true,text:'Moyenne'}}}, plugins:{legend:{display:false}, tooltip:{callbacks:{label: c => `${c.raw.j}: ${c.raw.y.toFixed(1)}`}}}}
-  });
-
-  destroyChart('c9');
-  charts.c9 = new Chart(document.getElementById('c9'), {
-    type:'scatter', data:{datasets: getScatterData(ALL0, 'mn', 'tpm')},
-    options:{responsive:true, maintainAspectRatio:false, scales:{x:{title:{display:true,text:'Minutes moy.'}}, y:{title:{display:true,text:'Score / minute'}}}, plugins:{legend:{display:false}, tooltip:{callbacks:{label: c => `${c.raw.j}: ${c.raw.y.toFixed(2)}`}}}}
-  });
-
-  destroyChart('c10');
-  charts.c10 = new Chart(document.getElementById('c10'), {
-    type:'scatter', data:{datasets: getScatterData(ALL0, 'sd', 's')},
-    options:{responsive:true, maintainAspectRatio:false, scales:{x:{title:{display:true,text:'Écart-type'}}, y:{title:{display:true,text:'Moyenne'}}}, plugins:{legend:{display:false}, tooltip:{callbacks:{label: c => `${c.raw.j}: ${c.raw.y.toFixed(1)} (σ=${c.raw.x.toFixed(1)})`}}}}
-  });
+  renderScatterChart('c8', ALL0, 'u35', 's', '% matchs ≥ 35', 'Moyenne', q);
+  renderScatterChart('c9', ALL0, 'mn', 'tpm', 'Minutes moy.', 'Score / minute', q);
+  renderScatterChart('c10', ALL0, 'sd', 's', 'Écart-type', 'Moyenne', q);
 }
 
 function getCss(varName) {
@@ -624,12 +639,12 @@ function renderPicksTable(filtre) {
 }
 
 function renderPlayersTable() {
-  const q = (document.getElementById('q').value || '').toLowerCase();
+  const q = normStr(document.getElementById('q').value || '');
   const vue = document.getElementById('tv').value;
   const filtrePos = document.getElementById('fl').value;
 
   let data = ALL0.filter(x => x.g >= 3);
-  if (q) data = data.filter(x => x.j.toLowerCase().includes(q) || x.t.toLowerCase().includes(q));
+  if (q) data = data.filter(x => normStr(x.j).includes(q) || normStr(x.t).includes(q));
   if (filtrePos) data = data.filter(x => x.p === filtrePos);
 
   if (vue === 'base') data.sort((a,b) => b.s - a.s);
@@ -639,13 +654,11 @@ function renderPlayersTable() {
   if (vue === 'base') {
     pt.innerHTML = `
       <thead><tr>
-        <th style="width:30px"></th>
         <th>Joueur</th><th>Éq.</th><th>Pos.</th><th class="r">Matchs</th>
         <th class="r">Min</th><th class="r">Moy.</th><th class="r">5 derniers</th><th class="r">σ</th>
       </tr></thead>
       <tbody>${data.slice(0,120).map(p => `
         <tr>
-          <td><input type="checkbox" class="cmp-chk" data-j="${p.j}" ${cmpSelection.has(p.j)?'checked':''}></td>
           <td>${p.j}</td><td>${p.t}</td><td>${p.p}</td>
           <td class="r">${p.g}</td><td class="r">${p.mn}</td>
           <td class="r"><b>${p.s}</b></td><td class="r">${p.m5}</td>
@@ -655,14 +668,12 @@ function renderPlayersTable() {
   } else {
     pt.innerHTML = `
       <thead><tr>
-        <th style="width:30px"></th>
         <th>Joueur</th><th>Éq.</th><th>Pos.</th>
         <th class="r">Moy.</th><th class="r">P20</th><th class="r">P50</th><th class="r">P80</th>
         <th class="r">%≥35</th><th class="r">σ</th>
       </tr></thead>
       <tbody>${data.slice(0,120).map(p => `
         <tr>
-          <td><input type="checkbox" class="cmp-chk" data-j="${p.j}" ${cmpSelection.has(p.j)?'checked':''}></td>
           <td>${p.j}</td><td>${p.t}</td><td>${p.p}</td>
           <td class="r">${p.s}</td><td class="r">${p.p20}</td>
           <td class="r">${p.p50}</td><td class="r">${p.p80}</td>
@@ -670,54 +681,7 @@ function renderPlayersTable() {
         </tr>`).join('')}
       </tbody>`;
   }
-
-  // Attacher les événements de case à cocher
-  document.querySelectorAll('.cmp-chk').forEach(chk => {
-    chk.addEventListener('change', (e) => {
-      const j = e.target.dataset.j;
-      if (e.target.checked) cmpSelection.add(j);
-      else cmpSelection.delete(j);
-      updateCmpBtn();
-    });
-  });
 }
-
-function updateCmpBtn() {
-  const btn = document.getElementById('cmp-btn');
-  btn.textContent = `Comparer (${cmpSelection.size})`;
-  btn.style.display = cmpSelection.size > 0 ? 'block' : 'none';
-}
-
-document.getElementById('cmp-btn').onclick = () => {
-  const modal = document.getElementById('cmp-modal');
-  const table = document.getElementById('cmp-table');
-  const players = ALL0.filter(x => cmpSelection.has(x.j));
-  
-  let html = `<thead><tr><th>Statistique</th>${players.map(p=>`<th>${p.j}</th>`).join('')}</tr></thead><tbody>`;
-  
-  const row = (label, fn) => `<tr><td><b>${label}</b></td>${players.map(p=>`<td class="r">${fn(p)}</td>`).join('')}</tr>`;
-  
-  html += row('Équipe / Pos', p => `${p.t} · ${p.p}`);
-  html += row('Matchs joués', p => p.g);
-  html += row('Moyenne TTFL', p => `<b>${p.s.toFixed(1)}</b>`);
-  html += row('Forme (5 dern.)', p => p.m5.toFixed(1));
-  html += row('Écart-type (σ)', p => p.sd.toFixed(1));
-  html += row('Plancher (P20)', p => p.p20.toFixed(1));
-  html += row('Médiane (P50)', p => p.p50.toFixed(1));
-  html += row('Plafond (P80)', p => p.p80.toFixed(1));
-  html += row('% Matchs ≥ 35', p => `${p.u35}%`);
-  html += row('Minutes moy.', p => p.mn.toFixed(1));
-  html += row('Rendement (/min)', p => p.tpm.toFixed(2));
-  
-  html += '</tbody>';
-  table.innerHTML = html;
-  modal.classList.add('open');
-};
-
-document.getElementById('cmp-close').onclick = () => document.getElementById('cmp-modal').classList.remove('open');
-document.getElementById('cmp-modal').onclick = (e) => {
-  if (e.target.id === 'cmp-modal') e.target.classList.remove('open');
-};
 
 function remplirSelecteurs() {
   const ip = document.getElementById('ip');
