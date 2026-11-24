@@ -4,7 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Dashboard TTFL interactif</title>
+<!-- Ajout du plugin de Zoom -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 :root{--bg:#f4f5f8;--card:#fff;--tx:#12161d;--mut:#5b6472;--bd:#dfe3ea;--grid:#e6e9ef;--P0:#e8590c;--P1:#1c7ed6;--P2:#9c36b5;--P3:#0c8599;--P4:#c2255c;--P5:#5f3dc4;--ok:#2b8a3e;--bad:#e03131;--hl:#eef1f6;--cs:#f08c00;--cp:#4263eb;--cr:#0ca678;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
@@ -66,6 +68,7 @@ button.b{cursor:pointer;font-weight:600}button.pri{background:var(--tx);color:va
   <div class="grid" id="gal-styles" style="margin-top:14px"></div>
 
   <h2 class="sec">Évolution</h2>
+  <p class="hlp" style="margin-top:-8px;margin-bottom:12px">💡 <b>Astuce :</b> Utilisez la molette pour zoomer, cliquez-glissez pour vous déplacer, et cliquez sur une ligne pour filtrer sur ce profil.</p>
   <div class="grid">
     <div class="card"><h3 id="t1"></h3><p class="n" id="n1"></p><div class="cv"><canvas id="c1"></canvas></div></div>
     <div class="card"><h3>Cumul de points</h3><p class="n" id="n2"></p><div class="cv"><canvas id="c2"></canvas></div></div>
@@ -133,12 +136,12 @@ button.b{cursor:pointer;font-weight:600}button.pri{background:var(--tx);color:va
 
   <h2 class="sec">Joueurs</h2>
   <div class="grid">
-    <div class="card"><h3 id="t5"></h3><p class="n" id="n5">TTFL moyen sur les 5 derniers matchs</p><div class="cv tall"><canvas id="c5"></canvas></div></div>
+    <div class="card"><h3 id="t5"></h3><p class="n" id="n5">TTFL moyen sur les 5 derniers matchs (cliquez sur une barre)</p><div class="cv tall"><canvas id="c5"></canvas></div></div>
     <div class="card"><h3>Régularité</h3><p class="n">Forte moyenne et peu de variations = en haut à gauche.</p><div class="cv tall"><canvas id="c6"></canvas></div></div>
   </div>
 
   <h2 class="sec">Risque et rôle des joueurs</h2>
-  <p class="hlp">Chaque point est un joueur éligible (≥ 3 matchs, ≥ 15 min). Les joueurs indisponibles pour le profil sélectionné apparaissent en gris clair.</p>
+  <p class="hlp">Chaque point est un joueur éligible (≥ 3 matchs, ≥ 15 min). Molette pour zoomer, clic pour rechercher un joueur.</p>
   <div class="grid" style="margin-top:10px">
     <div class="card"><h3>Fourchette de score</h3><p class="n">P20–P80, médiane, moyenne 5 derniers.</p><div class="cv tall"><canvas id="c7"></canvas></div></div>
     <div class="card"><h3>Sécurité et ambition</h3><p class="n">% au-dessus de 35 vs moyenne.</p><div class="cv tall"><canvas id="c8"></canvas></div></div>
@@ -174,15 +177,23 @@ let charts = {};
 let currentProfil = 'all';
 let maxDateStr = "";
 
-// Normalisation basique pour l'affichage/recherche (garde les espaces)
 const normStr = s => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-
-// Normalisation "clé unique" (retire accents, ponctuation, espaces) pour le regroupement
 const cleanNameKey = s => s ? s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, '').toLowerCase() : "";
 
-// Dictionnaire POS indexé par clé normalisée
 const POS_NORM = {};
 for (const [k, v] of Object.entries(POS)) POS_NORM[cleanNameKey(k)] = v;
+
+function parseMinutes(val) {
+  if (val === undefined || val === null || val === '') return 0;
+  if (typeof val === 'number') return val;
+  const str = String(val).trim();
+  if (/^\d+:\d+/.test(str)) {
+    const parts = str.split(':');
+    return parseFloat(parts[0]) + parseFloat(parts[1]) / 60;
+  }
+  const num = parseFloat(str);
+  return isNaN(num) ? 0 : num;
+}
 
 function ttflScore(b) {
   const fgm = +b.fgm||0, fga = +b.fga||0;
@@ -230,7 +241,7 @@ async function chargerDonnees() {
       BOX[iso] = rows.map(a => {
         if (Array.isArray(a)) {
           return {
-            j: a[0], t: a[1], opp: a[2], mn: +a[3]||0,
+            j: a[0], t: a[1], opp: a[2], mn: parseMinutes(a[3]),
             fgm: +a[4]||0, fga: +a[5]||0, tpm: +a[6]||0, tpa: +a[7]||0,
             ftm: +a[8]||0, fta: +a[9]||0, reb: +a[10]||0, ast: +a[11]||0,
             stl: +a[12]||0, blk: +a[13]||0, tov: +a[14]||0, pts: +a[15]||0,
@@ -238,7 +249,7 @@ async function chargerDonnees() {
           };
         } else {
           return {
-            j: a.j, t: a.t, opp: a.opp || "", mn: +(a.mn)||0,
+            j: a.j, t: a.t, opp: a.opp || "", mn: parseMinutes(a.mn),
             fgm: +(a.fgm)||0, fga: +(a.fga)||0, tpm: +(a.tpm)||0, tpa: +(a.tpa)||0,
             ftm: +(a.ftm)||0, fta: +(a.fta)||0, reb: +(a.reb)||0, ast: +(a.ast)||0,
             stl: +(a.stl)||0, blk: +(a.blk)||0, tov: +(a.tov)||0, pts: +(a.pts)||0,
@@ -275,17 +286,18 @@ async function chargerDonnees() {
 }
 
 /* ============================================================
-   AGRÉGATION BOX -> ALL0 (Corrigée pour ignorer les variations de noms)
+   AGRÉGATION BOX -> ALL0
    ============================================================ */
 function computeAggregates(box) {
   const byPlayer = {};
   for (const [iso, rows] of Object.entries(box)) {
     for (const b of rows) {
-      if (!b.j || !b.mn) continue;
-      
+      if (!b.j) continue;
       const rawName = b.j.trim();
       if (!rawName) continue;
+      
       const key = cleanNameKey(rawName);
+      if (!key) continue;
       
       if (!byPlayer[key]) {
         byPlayer[key] = { 
@@ -294,20 +306,19 @@ function computeAggregates(box) {
           displayName: rawName 
         };
       } else {
-        // On garde le nom le plus long pour l'affichage (souvent le plus complet)
         if (rawName.length > byPlayer[key].displayName.length) {
           byPlayer[key].displayName = rawName;
         }
       }
       
       byPlayer[key].games.push({ iso, ...b, j: rawName });
-      byPlayer[key].teams[b.t] = (byPlayer[key].teams[b.t] || 0) + 1;
+      if (b.t) byPlayer[key].teams[b.t] = (byPlayer[key].teams[b.t] || 0) + 1;
     }
   }
 
   const out = [];
   for (const [key, info] of Object.entries(byPlayer)) {
-    const games = info.games.filter(g => g.mn > 0);
+    const games = info.games.filter(g => g.mn > 0 || g.pts > 0 || g.reb > 0 || g.ast > 0);
     if (games.length < 2) continue;
 
     const scores = games.map(ttflScore).sort((a,b)=>a-b);
@@ -326,7 +337,7 @@ function computeAggregates(box) {
     const u25 = Math.round(100 * scores.filter(s => s >= 25).length / n);
     
     const team = Object.entries(info.teams).sort((a,b)=>b[1]-a[1])[0]?.[0] || "?";
-    const pos = POS_NORM[key] || POS[info.displayName.toLowerCase()] || "?";
+    const pos = POS_NORM[key] || "?";
 
     const sum_scoring = games.reduce((a,g)=>a+(g.pts + g.fgm + g.tpm + g.ftm),0);
     const sum_pm = games.reduce((a,g)=>a+(g.ast + g.stl),0);
@@ -357,6 +368,12 @@ function computeAggregates(box) {
    RENDU
    ============================================================ */
 const C_PROFILS = ["--P0","--P1","--P2","--P3","--P4","--P5"];
+
+function getUniqueColor(index, total) {
+  if (total <= 6) return getCss(`--P${index % 6}`);
+  const hue = Math.round((index * 360) / total);
+  return `hsl(${hue}, 70%, 50%)`;
+}
 
 function renderAll() {
   renderNav();
@@ -392,7 +409,7 @@ function renderNav() {
   profils.forEach((p, i) => {
     const b = document.createElement('button');
     b.textContent = p;
-    b.style.setProperty('--c', `var(${C_PROFILS[i % 6]})`);
+    b.style.setProperty('--c', getUniqueColor(i, profils.length));
     if (currentProfil === p) b.classList.add('on');
     
     b.onclick = () => {
@@ -443,7 +460,7 @@ function renderKPI(filtre) {
 
     const card = document.createElement('div');
     card.className = 'card kp';
-    card.style.setProperty('--c', `var(${C_PROFILS[i % 6]})`);
+    card.style.setProperty('--c', getUniqueColor(i, profils.length));
     card.innerHTML = `
       <div class="nm"><span>${p}</span><span>${valides.length} picks</span></div>
       <div class="kt">
@@ -590,10 +607,22 @@ function renderScatterChart(id, dataArr, xKey, yKey, xLabel, yLabel, q) {
     data: { datasets },
     options: {
       responsive: true, maintainAspectRatio: false,
+      interaction: { mode: 'nearest', intersect: true },
       scales: { x: { title: { display: true, text: xLabel } }, y: { title: { display: true, text: yLabel } } },
       plugins: {
         legend: { display: false },
+        zoom: { pan: { enabled: true, mode: 'xy' }, zoom: { wheel: { enabled: true }, pinch: { enabled: true }, mode: 'xy' } },
         tooltip: { callbacks: { label: c => `${c.raw.j}: ${c.raw.y.toFixed(1)} (${getDispoStatus(c.raw.j, currentProfil).label})` } }
+      },
+      onClick: (e, activeEls) => {
+        if (activeEls.length > 0) {
+          const chart = e.chart;
+          const pt = chart.data.datasets[activeEls[0].datasetIndex].data[activeEls[0].index];
+          if (pt && pt.j) {
+            document.getElementById('q').value = pt.j;
+            document.getElementById('q').dispatchEvent(new Event('input'));
+          }
+        }
       }
     },
     plugins: [customLabelsPlugin]
@@ -604,29 +633,86 @@ function renderCharts(filtre) {
   const profils = filtre ? [filtre] : Object.keys(SEED);
   const q = (document.getElementById('q').value || '').trim();
 
+  const allDates = [...new Set(PL.map(p => p.iso).filter(Boolean))].sort();
+
   destroyChart('c1');
   const datasets1 = profils.map((p, i) => {
-    const picks = (SEED[p]||[]).filter(x => x.s !== undefined).sort((a,b)=>a.iso.localeCompare(b.iso));
-    return { label: p, borderColor: getCss(`--P${i%6}`), data: picks.map(x => ({ x: x.iso, y: x.s })), tension: .3, pointRadius: 2 };
+    const picks = (SEED[p]||[]).filter(x => x.s !== undefined);
+    const pickMap = {};
+    picks.forEach(x => pickMap[x.iso] = x.s);
+    return { 
+      label: p, 
+      borderColor: getUniqueColor(i, profils.length), 
+      backgroundColor: getUniqueColor(i, profils.length),
+      data: allDates.map(d => pickMap[d] !== undefined ? pickMap[d] : null), 
+      tension: .3, 
+      pointRadius: 3,
+      spanGaps: true
+    };
   });
   charts.c1 = new Chart(document.getElementById('c1'), {
-    type:'line', data:{datasets:datasets1},
-    options:{responsive:true, maintainAspectRatio:false, scales:{x:{type:'category'}, y:{beginAtZero:true}}, plugins:{legend:{position:'bottom'}}}
+    type:'line', 
+    data:{ labels: allDates, datasets: datasets1 },
+    options:{
+      responsive:true, maintainAspectRatio:false, 
+      interaction: { mode: 'index', intersect: false },
+      scales:{x:{type:'category'}, y:{beginAtZero:true}}, 
+      plugins:{
+        legend:{position:'bottom'},
+        zoom: { pan: { enabled: true, mode: 'x' }, zoom: { wheel: { enabled: true }, pinch: { enabled: true }, mode: 'x' } }
+      },
+      onClick: (e, activeEls) => {
+        if (activeEls.length > 0) {
+          const profileName = profils[activeEls[0].datasetIndex];
+          const btns = document.querySelectorAll('#nav button');
+          btns.forEach(b => { if (b.textContent === profileName) b.click(); });
+        }
+      }
+    }
   });
   document.getElementById('t1').textContent = "Score pick par pick";
-  document.getElementById('n1').textContent = "Chronologie des scores TTFL";
+  document.getElementById('n1').textContent = "Chronologie des scores TTFL (molette pour zoomer)";
 
   destroyChart('c2');
   const datasets2 = profils.map((p, i) => {
-    const picks = (SEED[p]||[]).filter(x => x.s !== undefined).sort((a,b)=>a.iso.localeCompare(b.iso));
-    let c = 0;
-    return { label: p, borderColor: getCss(`--P${i%6}`), data: picks.map(x => ({ x: x.iso, y: (c += x.s||0) })), tension: .3, pointRadius: 2 };
+    const picks = (SEED[p]||[]).filter(x => x.s !== undefined);
+    const pickMap = {};
+    picks.forEach(x => pickMap[x.iso] = x.s);
+    let cumul = 0;
+    const data = allDates.map(d => {
+      if (pickMap[d] !== undefined) cumul += pickMap[d];
+      return cumul;
+    });
+    return { 
+      label: p, 
+      borderColor: getUniqueColor(i, profils.length), 
+      backgroundColor: getUniqueColor(i, profils.length),
+      data: data, 
+      tension: .3, 
+      pointRadius: 2 
+    };
   });
   charts.c2 = new Chart(document.getElementById('c2'), {
-    type:'line', data:{datasets:datasets2},
-    options:{responsive:true, maintainAspectRatio:false, scales:{x:{type:'category'}, y:{beginAtZero:true}}, plugins:{legend:{position:'bottom'}}}
+    type:'line', 
+    data:{ labels: allDates, datasets: datasets2 },
+    options:{
+      responsive:true, maintainAspectRatio:false, 
+      interaction: { mode: 'index', intersect: false },
+      scales:{x:{type:'category'}, y:{beginAtZero:true}}, 
+      plugins:{
+        legend:{position:'bottom'},
+        zoom: { pan: { enabled: true, mode: 'x' }, zoom: { wheel: { enabled: true }, pinch: { enabled: true }, mode: 'x' } }
+      },
+      onClick: (e, activeEls) => {
+        if (activeEls.length > 0) {
+          const profileName = profils[activeEls[0].datasetIndex];
+          const btns = document.querySelectorAll('#nav button');
+          btns.forEach(b => { if (b.textContent === profileName) b.click(); });
+        }
+      }
+    }
   });
-  document.getElementById('n2').textContent = "Cumul des points par profil";
+  document.getElementById('n2').textContent = "Cumul des points par profil (cliquez sur une ligne)";
 
   destroyChart('c3');
   const allPicks = profils.flatMap(p => (SEED[p]||[]).filter(x => x.s !== undefined));
@@ -642,7 +728,7 @@ function renderCharts(filtre) {
   charts.c4 = new Chart(document.getElementById('c4'), {
     type:'scatter',
     data:{datasets:profils.map((p,i) => ({
-      label: p, backgroundColor: getCss(`--P${i%6}`),
+      label: p, backgroundColor: getUniqueColor(i, profils.length),
       data: (SEED[p]||[]).filter(x => x.s !== undefined).map(x => ({x:x.m||0, y:x.s}))
     }))},
     options:{responsive:true, maintainAspectRatio:false, scales:{x:{title:{display:true,text:'Malus'}}, y:{title:{display:true,text:'Score'}}}, plugins:{legend:{position:'bottom'}}}
@@ -653,7 +739,16 @@ function renderCharts(filtre) {
   charts.c5 = new Chart(document.getElementById('c5'), {
     type:'bar',
     data:{ labels: topM5.map(x=>x.j), datasets:[{ data: topM5.map(x=>x.m5), backgroundColor: getCss('--P2') }]},
-    options:{indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}}
+    options:{
+      indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}},
+      onClick: (e, activeEls) => {
+        if (activeEls.length > 0) {
+          const playerName = topM5[activeEls[0].index].j;
+          document.getElementById('q').value = playerName;
+          document.getElementById('q').dispatchEvent(new Event('input'));
+        }
+      }
+    }
   });
   document.getElementById('t5').textContent = "Top 15 forme récente";
 
@@ -668,7 +763,16 @@ function renderCharts(filtre) {
         { label:'P50', data: top20.map(x=>x.p50), backgroundColor: getCss('--P1') },
         { label:'P80', data: top20.map(x=>x.p80), backgroundColor: getCss('--P0') }
     ]},
-    options:{indexAxis:'y', responsive:true, maintainAspectRatio:false, scales:{x:{beginAtZero:true}}}
+    options:{
+      indexAxis:'y', responsive:true, maintainAspectRatio:false, scales:{x:{beginAtZero:true}},
+      onClick: (e, activeEls) => {
+        if (activeEls.length > 0) {
+          const playerName = top20[activeEls[0].index].j;
+          document.getElementById('q').value = playerName;
+          document.getElementById('q').dispatchEvent(new Event('input'));
+        }
+      }
+    }
   });
   
   renderScatterChart('c8', ALL0, 'u35', 's', '% matchs ≥ 35', 'Moyenne', q);
@@ -1022,9 +1126,12 @@ function parserExcel(workbook) {
 
         allRows.push({
           iso: iso, j: pName, t: "?", opp: "",
-          mn: +(r[idx.mn]) || 0, fgm: +(r[idx.fgm]) || 0, fga: +(r[idx.fga]) || 0,
-          tpm: +(r[idx.tpm]) || 0, tpa: +(r[idx.tpa]) || 0, ftm: +(r[idx.ftm]) || 0, fta: +(r[idx.fta]) || 0,
-          reb: +(r[idx.reb]) || 0, ast: +(r[idx.ast]) || 0, stl: +(r[idx.stl]) || 0, blk: +(r[idx.blk]) || 0,
+          mn: parseMinutes(r[idx.mn]), 
+          fgm: +(r[idx.fgm]) || 0, fga: +(r[idx.fga]) || 0,
+          tpm: +(r[idx.tpm]) || 0, tpa: +(r[idx.tpa]) || 0, 
+          ftm: +(r[idx.ftm]) || 0, fta: +(r[idx.fta]) || 0,
+          reb: +(r[idx.reb]) || 0, ast: +(r[idx.ast]) || 0, 
+          stl: +(r[idx.stl]) || 0, blk: +(r[idx.blk]) || 0,
           tov: +(r[idx.tov]) || 0, pts: +(r[idx.pts]) || 0, status: ""
         });
       }
@@ -1065,7 +1172,8 @@ function parserBox(txt) {
     if (!out[iso]) out[iso] = [];
     out[iso].push({
       j: c[iJ], t: c[iT] || "?",
-      mn: +c[iMin] || 0, pts: +c[iPts] || 0, reb: +c[iReb] || 0, ast: +c[iAst] || 0,
+      mn: parseMinutes(c[iMin]), 
+      pts: +c[iPts] || 0, reb: +c[iReb] || 0, ast: +c[iAst] || 0,
       stl: +c[iStl] || 0, blk: +c[iBlk] || 0, tov: +c[iTov] || 0,
       fgm: +c[iFgm] || 0, fga: +c[iFga] || 0, tpm: +c[i3pm] || 0, tpa: +c[i3pa] || 0,
       ftm: +c[iFtm] || 0, fta: +c[iFta] || 0, status: ""
