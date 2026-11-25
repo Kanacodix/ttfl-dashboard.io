@@ -5,7 +5,7 @@ Un tableau de bord qui aide à la prise de décision en Trashtalk Fantasy League
 
 Bienvenue sur le Dashboard TTFL ! Cet outil web permet de visualiser, d'analyser et de gérer vos performances sur votre ligue de Fantasy Basketball (TTFL). 
 
-🌍 **Site en ligne :** [https://kanacodix.github.io/kanacodix.ttfl-dashboard.io/](https://kanacodix.github.io/kanacodix.ttfl-dashboard.io/)
+🌍 **Site en ligne :** [https://kanacodix.github.io/ttfl-dashboard.io/](https://kanacodix.github.io/ttfl-dashboard.io/)
 
 ---
 
