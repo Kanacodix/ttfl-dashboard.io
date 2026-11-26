@@ -519,6 +519,7 @@ async function chargerDonnees() {
     }
 
     ALL0 = data.ALL0 || computeAggregates(BOX);
+    ALL0.forEach(x => { if (typeof x.isActive !== 'boolean') x.isActive = true; });
 
     PL = [];
     for (const [profil, picks] of Object.entries(SEED)) {
@@ -548,6 +549,11 @@ async function chargerDonnees() {
    AGRÉGATION BOX -> ALL0
    ============================================================ */
 function computeAggregates(box) {
+  // Date de référence : dernier jour de boxscore disponible.
+  // (maxDateStr n'est pas encore défini lors du 1er appel -> tous les joueurs étaient "inactifs")
+  const boxDatesSorted = Object.keys(box).sort();
+  const refDateStr = boxDatesSorted[boxDatesSorted.length - 1] || maxDateStr || new Date().toISOString().split('T')[0];
+  const refTime = new Date(refDateStr).getTime();
   const byPlayer = {};
   for (const [iso, rows] of Object.entries(box)) {
     for (const b of rows) {
@@ -597,8 +603,8 @@ function computeAggregates(box) {
     
     let lastGameDate = "";
     games.forEach(g => { if(g.iso > lastGameDate) lastGameDate = g.iso; });
-    const daysSinceLastGame = (new Date(maxDateStr) - new Date(lastGameDate)) / (1000 * 60 * 60 * 24);
-    const isActive = daysSinceLastGame <= 10;
+    const daysSinceLastGame = (refTime - new Date(lastGameDate).getTime()) / (1000 * 60 * 60 * 24);
+    const isActive = Number.isFinite(daysSinceLastGame) ? daysSinceLastGame <= 10 : true;
 
     const team = Object.entries(info.teams).sort((a,b)=>b[1]-a[1])[0]?.[0] || "?";
     
