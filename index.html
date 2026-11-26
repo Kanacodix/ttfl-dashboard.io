@@ -21,15 +21,12 @@
   --hl: #f1f5f9;
   --grid: #e2e8f0;
   
-  /* Couleurs des profils */
   --P0: #f97316; --P1: #3b82f6; --P2: #8b5cf6; 
   --P3: #14b8a6; --P4: #ec4899; --P5: #6366f1;
   
-  /* Couleurs sémantiques */
   --ok: #10b981; --bad: #ef4444;
   --cs: #f59e0b; --cp: #3b82f6; --cr: #10b981;
   
-  /* Ombres et rayons */
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
   --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
   --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.05), 0 4px 6px -4px rgb(0 0 0 / 0.05);
@@ -72,7 +69,6 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* Scrollbar personnalisée */
 ::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--bd); border-radius: 4px; }
@@ -174,7 +170,7 @@ h2.sec::before {
 .cv.tall { height: 460px; }
 
 /* ============================================================
-   TABLEAUX (Lisibilité & Ergonomie)
+   TABLEAUX
    ============================================================ */
 .tb {
   overflow-x: auto; max-height: 550px; overflow-y: auto;
@@ -202,7 +198,6 @@ tr:nth-child(even) td { background: color-mix(in srgb, var(--hl) 30%, transparen
 tr:hover td { background: var(--hl) !important; }
 td.r { text-align: right; font-variant-numeric: tabular-nums; }
 
-/* Badges de statut */
 .badge-dispo {
   background: color-mix(in srgb, var(--ok) 12%, transparent);
   color: var(--ok); border: 1px solid color-mix(in srgb, var(--ok) 30%, transparent);
@@ -218,7 +213,6 @@ td.r { text-align: right; font-variant-numeric: tabular-nums; }
 }
 .badge-indispo::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--bad); }
 
-/* Chips de score */
 .chip {
   display: inline-block; min-width: 44px; text-align: center;
   padding: 3px 8px; border-radius: 6px; font-weight: 700; font-size: 13px;
@@ -229,7 +223,7 @@ td.r { text-align: right; font-variant-numeric: tabular-nums; }
 .md { background: var(--bd); color: var(--tx); }
 
 /* ============================================================
-   FORMULAIRES & BOUTONS (Ergonomie)
+   FORMULAIRES & BOUTONS
    ============================================================ */
 .ctl { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; align-items: center; }
 input, select, button.b, textarea {
@@ -257,7 +251,6 @@ button.pri:hover {
 }
 button.b:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; box-shadow: none !important; }
 
-/* Toggle Switch */
 .toggle-switch { display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 14px; font-weight: 500; color: var(--mut); }
 .toggle-switch input { display: none; }
 .toggle-switch .slider {
@@ -273,7 +266,6 @@ button.b:disabled { opacity: 0.5; cursor: not-allowed; transform: none !importan
 .toggle-switch input:checked + .slider { background: var(--ok); }
 .toggle-switch input:checked + .slider::after { transform: translateX(18px); }
 
-/* Drop Zone */
 .drop {
   border: 2px dashed var(--bd); border-radius: var(--radius);
   padding: 32px; text-align: center; color: var(--mut);
@@ -281,13 +273,12 @@ button.b:disabled { opacity: 0.5; cursor: not-allowed; transform: none !importan
 }
 .drop:hover, .drop.ov { border-color: var(--P1); background: color-mix(in srgb, var(--P1) 5%, var(--hl)); color: var(--P1); }
 
-/* Messages */
 .msg { margin: 12px 0 0; padding: 12px 16px; border-radius: var(--radius-sm); background: var(--hl); font-size: 14px; font-weight: 500; }
 .msg:empty { display: none; }
 .msg.er { color: var(--bad); background: color-mix(in srgb, var(--bad) 10%, transparent); }
 
 /* ============================================================
-   CARTES DE STYLE DÉTAILLÉES
+   CARTES DE STYLE
    ============================================================ */
 .g-card { display: flex; flex-direction: column; gap: 10px; }
 .g-card .g-desc { font-size: 13px; color: var(--mut); margin-bottom: 10px; line-height: 1.5; }
@@ -442,11 +433,11 @@ let charts = {};
 let currentProfil = 'all';
 let maxDateStr = "";
 
-// Tri par défaut
 let currentSort = { col: 's', dir: -1 };
 
 const normStr = s => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-const cleanNameKey = s => s ? s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, '').toLowerCase() : "";
+// CORRECTION MAJEURE ICI : [a-zA-Z0-9] au lieu de [a-z0-9]
+const cleanNameKey = s => s ? s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9]/g, '').toLowerCase() : "";
 
 const POS_NORM = {};
 for (const [k, v] of Object.entries(POS)) POS_NORM[cleanNameKey(k)] = v;
@@ -604,14 +595,15 @@ function computeAggregates(box) {
     const u35 = Math.round(100 * scores.filter(s => s >= 35).length / n);
     const u25 = Math.round(100 * scores.filter(s => s >= 25).length / n);
     
-    // Filtre de récence
     let lastGameDate = "";
     games.forEach(g => { if(g.iso > lastGameDate) lastGameDate = g.iso; });
     const daysSinceLastGame = (new Date(maxDateStr) - new Date(lastGameDate)) / (1000 * 60 * 60 * 24);
     const isActive = daysSinceLastGame <= 10;
 
     const team = Object.entries(info.teams).sort((a,b)=>b[1]-a[1])[0]?.[0] || "?";
-    const pos = POS_NORM[key] || POS[key] || "?";
+    
+    // Utilisation de POS_NORM corrigé
+    const pos = POS_NORM[key] || "?";
 
     const sumPts = games.reduce((a,g)=>a+g.pts,0);
     const sumReb = games.reduce((a,g)=>a+g.reb,0);
@@ -778,7 +770,8 @@ function renderGalerie() {
   const galn = document.getElementById('galn');
   gal.innerHTML = ''; galStyles.innerHTML = '';
   
-  const elig = ALL0.filter(x => x.g >= 3 && x.isActive && getDispoStatus(x.j, currentProfil).ok);
+  const hideInact = document.getElementById('hide-inactive').checked;
+  const elig = ALL0.filter(x => x.g >= 3 && (!hideInact || x.isActive) && getDispoStatus(x.j, currentProfil).ok);
   
   if (!elig.length) {
     galn.textContent = "Aucun joueur disponible ne correspond aux critères pour ce profil.";
@@ -1043,13 +1036,26 @@ function renderCharts(filtre) {
   charts.c4 = new Chart(document.getElementById('c4'), {
     type:'scatter',
     data:{datasets:profils.map((p,i) => ({
-      label: p, backgroundColor: getUniqueColor(i, profils.length),
-      data: (SEED[p]||[]).filter(x => x.s !== undefined).map(x => ({x:x.m||0, y:x.s}))
+      label: p, 
+      backgroundColor: getUniqueColor(i, profils.length),
+      data: (SEED[p]||[]).filter(x => x.s !== undefined).map(x => ({x:x.m||0, y:x.s, j:x.j, profil:p}))
     }))},
     options:{
       responsive:true, maintainAspectRatio:false, 
       scales:{x:{title:{display:true,text:'Malus'}, grid: { color: getCss('--grid') }}, y:{title:{display:true,text:'Score'}, grid: { color: getCss('--grid') }}}, 
-      plugins:{legend:{position:'bottom', labels: { usePointStyle: true, boxWidth: 8 }}, tooltip: { backgroundColor: 'rgba(30, 41, 59, 0.9)', padding: 12, cornerRadius: 8 }}
+      plugins:{
+        legend:{position:'bottom', labels: { usePointStyle: true, boxWidth: 8 }}, 
+        tooltip: { 
+          backgroundColor: 'rgba(30, 41, 59, 0.9)', 
+          padding: 12, 
+          cornerRadius: 8,
+          callbacks: {
+            label: (c) => {
+              return `${c.raw.j} (${c.raw.profil}) : Malus ${c.raw.x}, Score ${c.raw.y}`;
+            }
+          }
+        }
+      }
     }
   });
 
@@ -1140,7 +1146,6 @@ function renderPlayersTable() {
   if (q) data = data.filter(x => normStr(x.j).includes(q) || normStr(x.t).includes(q));
   if (filtrePos) data = data.filter(x => x.p === filtrePos);
 
-  // Tri global
   data.sort((a, b) => {
     const da = getDispoStatus(a.j, currentProfil).ok;
     const db = getDispoStatus(b.j, currentProfil).ok;
@@ -1282,6 +1287,7 @@ document.getElementById('hide-inactive').addEventListener('change', () => {
   renderPlayersTable();
   const p = currentProfil === 'all' ? undefined : currentProfil;
   renderCharts(p);
+  renderGalerie();
 });
 
 document.getElementById('ex').onclick = () => {
