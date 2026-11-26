@@ -8,50 +8,297 @@
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
-:root{--bg:#f4f5f8;--card:#fff;--tx:#12161d;--mut:#5b6472;--bd:#dfe3ea;--grid:#e6e9ef;--P0:#e8590c;--P1:#1c7ed6;--P2:#9c36b5;--P3:#0c8599;--P4:#c2255c;--P5:#5f3dc4;--ok:#2b8a3e;--bad:#e03131;--hl:#eef1f6;--cs:#f08c00;--cp:#4263eb;--cr:#0ca678;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
-@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0d1015;--card:#161a21;--tx:#eef1f6;--mut:#9aa4b2;--bd:#262c36;--grid:#262c36;--P0:#ff922b;--P1:#74c0fc;--P2:#da77f2;--P3:#3bc9db;--P4:#f783ac;--P5:#9775fa;--ok:#69db7c;--bad:#ff6b6b;--hl:#1d222b;--cs:#ffd43b;--cp:#91a7ff;--cr:#63e6be}}
-:root[data-theme="dark"]{--bg:#0d1015;--card:#161a21;--tx:#eef1f6;--mut:#9aa4b2;--bd:#262c36;--grid:#262c36;--P0:#ff922b;--P1:#74c0fc;--P2:#da77f2;--P3:#3bc9db;--P4:#f783ac;--P5:#9775fa;--ok:#69db7c;--bad:#ff6b6b;--hl:#1d222b;--cs:#ffd43b;--cp:#91a7ff;--cr:#63e6be}
-html{scroll-padding-top:calc(env(safe-area-inset-top,0px) + 64px)}*{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
-.w{max-width:1200px;margin:0 auto;padding:16px}h1{font-size:26px;margin:8px 0 4px}.sub{color:var(--mut);margin:0;font-size:14px}
-nav{position:sticky;top:0;z-index:10;background:var(--bg);border-bottom:1px solid var(--bd);padding:10px 16px;display:flex;gap:8px;overflow-x:auto}
-nav button{flex:0 0 auto;font:600 15px system-ui,sans-serif;padding:9px 18px;border-radius:99px;border:2px solid var(--bd);background:var(--card);color:var(--tx);cursor:pointer;transition:all .2s}
-nav button:hover{background:var(--hl)}
-nav button.on{color:#fff;border-color:transparent;background:var(--c,var(--tx))}
-nav button.all.on{color:var(--bg)}nav button.imp{border-style:dashed;margin-left:auto}
-h2.sec{font-size:19px;margin:28px 0 12px;padding-left:10px;border-left:4px solid var(--tx)}
-.grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr))}
-.card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:16px;min-width:0}
-.card h3{font-size:15px;margin:0 0 4px}.card p.n{margin:0 0 10px;color:var(--mut);font-size:13px}
-.kp{border-top:5px solid var(--c)}.kp .nm{font-weight:700;font-size:17px;color:var(--c);margin-bottom:10px;display:flex;justify-content:space-between}
-.kt{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.kt b{display:block;font-size:26px;line-height:1.1}.kt span{color:var(--mut);font-size:13px}
-.solo{grid-column:1/-1}.solo .kt{grid-template-columns:repeat(auto-fit,minmax(130px,1fr))}.solo .kt b{font-size:32px}
-.cv{position:relative;height:290px}.cv.tall{height:440px}
-.tb{overflow-x:auto;max-height:520px;overflow-y:auto}table{border-collapse:collapse;width:100%;font-size:14px}
-th{position:sticky;top:0;background:var(--card);color:var(--mut);font-weight:600;text-align:left;padding:8px;border-bottom:2px solid var(--bd);white-space:nowrap;cursor:pointer;user-select:none}
-th:hover{color:var(--tx)}
-th.r{text-align:right}th .arrow{font-size:10px;margin-left:4px;opacity:0.5}
-td{padding:7px 8px;border-bottom:1px solid var(--bd);white-space:nowrap}tr:hover td{background:var(--hl)}td.r{text-align:right;font-variant-numeric:tabular-nums}
-.chip{display:inline-block;min-width:38px;text-align:center;padding:1px 8px;border-radius:8px;font-weight:700;font-size:13px}
-.lo{background:color-mix(in srgb,var(--bad) 18%,transparent);color:var(--bad)}.hi{background:color-mix(in srgb,var(--ok) 20%,transparent);color:var(--ok)}.md{background:var(--hl)}
-.free{color:var(--ok);font-weight:600}.lk{color:var(--mut)}.dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px}
-.ctl{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;align-items:center}input,select,button.b,textarea{font:inherit;background:var(--card);color:var(--tx);border:1px solid var(--bd);border-radius:10px;padding:8px 10px}input.g{flex:1;min-width:200px}
-button.b{cursor:pointer;font-weight:600}button.pri{background:var(--tx);color:var(--bg);border-color:transparent}button.b:disabled{opacity:.4;cursor:default}button.x{border:0;background:none;color:var(--mut);cursor:pointer;font-size:15px}
-.drop{border:2px dashed var(--bd);border-radius:12px;padding:18px;text-align:center;color:var(--mut);cursor:pointer}.drop.ov{border-color:var(--tx);background:var(--hl)}
-.msg{margin:10px 0 0;padding:10px 12px;border-radius:10px;background:var(--hl);font-size:14px}.msg:empty{display:none}.msg.er{color:var(--bad)}
-.ft{display:flex;justify-content:space-between;align-items:baseline;gap:8px}.nm2{font-size:19px;font-weight:700}.big{font-size:34px;font-weight:700;line-height:1}.bar{display:flex;height:10px;border-radius:6px;overflow:hidden;margin:10px 0 4px}.bar i{display:block;height:100%}.r2{display:flex;justify-content:space-between;gap:8px;padding:5px 0;border-bottom:1px solid var(--bd);font-size:14px}.sw{display:inline-block;width:10px;height:10px;border-radius:3px;margin:0 4px 0 10px}.leg{font-size:13px;color:var(--mut);margin:6px 0 0}.leg i{display:inline-block;width:10px;height:10px;border-radius:2px;margin:0 4px 0 10px}.hlp{font-size:13px;color:var(--mut)}
-.g-card{display:flex;flex-direction:column;gap:8px}
-.g-card .g-desc{font-size:13px;color:var(--mut);margin-bottom:10px;line-height:1.4}
-.g-card .g-name{font-size:20px;font-weight:800;display:flex;justify-content:space-between;align-items:baseline}
-.g-card .g-name span:last-child{font-size:28px}
-.g-card .g-sub{font-size:14px;color:var(--mut)}
-.g-card .g-stats{font-size:13.5px;line-height:1.6;margin-top:4px}
-.g-card .g-bar{display:flex;height:12px;border-radius:6px;overflow:hidden;margin:6px 0}
-.g-card .g-bar i{display:block;height:100%}
-.g-card .g-legend{font-size:12px;color:var(--mut);display:flex;gap:12px}
-.g-card .g-next{font-size:13px;color:var(--mut);margin-top:8px;padding-top:8px;border-top:1px solid var(--bd);line-height:1.4}
-.badge-dispo{background:color-mix(in srgb, var(--ok) 15%, transparent);color:var(--ok);font-weight:600;padding:2px 8px;border-radius:6px;font-size:12px}
-.badge-indispo{background:color-mix(in srgb, var(--bad) 15%, transparent);color:var(--bad);font-weight:600;padding:2px 8px;border-radius:6px;font-size:12px}
+/* ============================================================
+   SYSTÈME DE DESIGN & VARIABLES
+   ============================================================ */
+:root {
+  --bg: #f4f6f9;
+  --bg-nav: rgba(244, 246, 249, 0.85);
+  --card: #ffffff;
+  --tx: #1e293b;
+  --mut: #64748b;
+  --bd: #e2e8f0;
+  --hl: #f1f5f9;
+  --grid: #e2e8f0;
+  
+  /* Couleurs des profils */
+  --P0: #f97316; --P1: #3b82f6; --P2: #8b5cf6; 
+  --P3: #14b8a6; --P4: #ec4899; --P5: #6366f1;
+  
+  /* Couleurs sémantiques */
+  --ok: #10b981; --bad: #ef4444;
+  --cs: #f59e0b; --cp: #3b82f6; --cr: #10b981;
+  
+  /* Ombres et rayons */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.05), 0 4px 6px -4px rgb(0 0 0 / 0.05);
+  --radius: 12px;
+  --radius-sm: 8px;
+  
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+@media(prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f172a;
+    --bg-nav: rgba(15, 23, 42, 0.85);
+    --card: #1e293b;
+    --tx: #f8fafc;
+    --mut: #94a3b8;
+    --bd: #334155;
+    --hl: #0f172a;
+    --grid: #334155;
+    --P0: #fb923c; --P1: #60a5fa; --P2: #a78bfa;
+    --P3: #2dd4bf; --P4: #f472b6; --P5: #818cf8;
+    --ok: #34d399; --bad: #f87171;
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.3);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.3);
+  }
+}
+
+/* ============================================================
+   RESET & GLOBAL
+   ============================================================ */
+* { box-sizing: border-box; }
+html { scroll-padding-top: 80px; scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--tx);
+  font: 16px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Scrollbar personnalisée */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--bd); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--mut); }
+
+/* ============================================================
+   NAVIGATION
+   ============================================================ */
+nav {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: var(--bg-nav);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--bd);
+  padding: 12px 24px;
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  box-shadow: var(--shadow-sm);
+}
+nav::-webkit-scrollbar { display: none; }
+nav button {
+  flex: 0 0 auto;
+  font: 600 14px system-ui, sans-serif;
+  padding: 8px 20px;
+  border-radius: 99px;
+  border: 1px solid var(--bd);
+  background: var(--card);
+  color: var(--tx);
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: var(--shadow-sm);
+}
+nav button:hover { transform: translateY(-1px); box-shadow: var(--shadow-md); }
+nav button.on {
+  color: #fff;
+  border-color: transparent;
+  background: var(--c, var(--tx));
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--c, var(--tx)) 40%, transparent);
+}
+nav button.all.on { color: var(--bg); }
+nav button.imp {
+  border-style: dashed;
+  margin-left: auto;
+  background: transparent;
+  color: var(--mut);
+}
+
+/* ============================================================
+   LAYOUT & CARTES
+   ============================================================ */
+.w { max-width: 1280px; margin: 0 auto; padding: 24px; }
+h1 { font-size: 32px; font-weight: 800; letter-spacing: -0.5px; margin: 8px 0 4px; }
+.sub { color: var(--mut); margin: 0 0 16px; font-size: 15px; }
+h2.sec {
+  font-size: 20px; font-weight: 700; margin: 40px 0 16px;
+  display: flex; align-items: center; gap: 8px;
+}
+h2.sec::before {
+  content: ''; display: block; width: 4px; height: 20px;
+  background: var(--tx); border-radius: 2px;
+}
+
+.grid { display: grid; gap: 20px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); }
+.card {
+  background: var(--card);
+  border: 1px solid var(--bd);
+  border-radius: var(--radius);
+  padding: 20px;
+  min-width: 0;
+  box-shadow: var(--shadow-md);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  animation: slideUp 0.5s ease-out forwards;
+  opacity: 0;
+}
+@keyframes slideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+.card:hover { box-shadow: var(--shadow-lg); transform: translateY(-2px); }
+.card h3 { font-size: 16px; font-weight: 700; margin: 0 0 6px; color: var(--tx); }
+.card p.n { margin: 0 0 16px; color: var(--mut); font-size: 13px; line-height: 1.4; }
+
+/* KPI Cards */
+.kp { border-top: 4px solid var(--c); position: relative; overflow: hidden; }
+.kp::after {
+  content: ''; position: absolute; top: 0; right: 0; width: 100px; height: 100%;
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--c) 5%, transparent));
+  pointer-events: none;
+}
+.kp .nm { font-weight: 800; font-size: 18px; color: var(--c); margin-bottom: 16px; display: flex; justify-content: space-between; }
+.kt { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.kt b { display: block; font-size: 28px; font-weight: 800; line-height: 1.1; color: var(--tx); }
+.kt span { color: var(--mut); font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; }
+
+/* ============================================================
+   GRAPHIQUES
+   ============================================================ */
+.cv { position: relative; height: 300px; }
+.cv.tall { height: 460px; }
+
+/* ============================================================
+   TABLEAUX (Lisibilité & Ergonomie)
+   ============================================================ */
+.tb {
+  overflow-x: auto; max-height: 550px; overflow-y: auto;
+  border-radius: var(--radius-sm); border: 1px solid var(--bd);
+  background: var(--card);
+}
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th {
+  position: sticky; top: 0; z-index: 10;
+  background: var(--bg); color: var(--mut);
+  font-weight: 600; text-align: left; padding: 12px;
+  border-bottom: 1px solid var(--bd);
+  white-space: nowrap; cursor: pointer; user-select: none;
+  transition: background 0.2s, color 0.2s;
+}
+th:hover { background: var(--hl); color: var(--tx); }
+th.r { text-align: right; }
+th .arrow { font-size: 10px; margin-left: 6px; opacity: 0.4; }
+th:hover .arrow { opacity: 1; }
+td {
+  padding: 10px 12px; border-bottom: 1px solid var(--bd);
+  white-space: nowrap; transition: background 0.15s;
+}
+tr:nth-child(even) td { background: color-mix(in srgb, var(--hl) 30%, transparent); }
+tr:hover td { background: var(--hl) !important; }
+td.r { text-align: right; font-variant-numeric: tabular-nums; }
+
+/* Badges de statut */
+.badge-dispo {
+  background: color-mix(in srgb, var(--ok) 12%, transparent);
+  color: var(--ok); border: 1px solid color-mix(in srgb, var(--ok) 30%, transparent);
+  font-weight: 600; padding: 3px 10px; border-radius: 99px; font-size: 12px;
+  display: inline-flex; align-items: center; gap: 4px;
+}
+.badge-dispo::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--ok); }
+.badge-indispo {
+  background: color-mix(in srgb, var(--bad) 10%, transparent);
+  color: var(--bad); border: 1px solid color-mix(in srgb, var(--bad) 25%, transparent);
+  font-weight: 600; padding: 3px 10px; border-radius: 99px; font-size: 12px;
+  display: inline-flex; align-items: center; gap: 4px;
+}
+.badge-indispo::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--bad); }
+
+/* Chips de score */
+.chip {
+  display: inline-block; min-width: 44px; text-align: center;
+  padding: 3px 8px; border-radius: 6px; font-weight: 700; font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.lo { background: color-mix(in srgb, var(--bad) 15%, transparent); color: var(--bad); }
+.hi { background: color-mix(in srgb, var(--ok) 15%, transparent); color: var(--ok); }
+.md { background: var(--bd); color: var(--tx); }
+
+/* ============================================================
+   FORMULAIRES & BOUTONS (Ergonomie)
+   ============================================================ */
+.ctl { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; align-items: center; }
+input, select, button.b, textarea {
+  font: inherit; background: var(--card); color: var(--tx);
+  border: 1px solid var(--bd); border-radius: var(--radius-sm);
+  padding: 10px 14px; box-shadow: var(--shadow-sm);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+input:focus, select:focus, textarea:focus {
+  outline: none; border-color: var(--P1); box-shadow: 0 0 0 3px color-mix(in srgb, var(--P1) 20%, transparent);
+}
+input.g { flex: 1; min-width: 240px; }
+button.b {
+  cursor: pointer; font-weight: 600; display: inline-flex; align-items: center; gap: 6px;
+}
+button.b:hover { background: var(--hl); }
+button.pri {
+  background: var(--tx); color: var(--bg); border-color: transparent;
+  box-shadow: 0 4px 10px color-mix(in srgb, var(--tx) 30%, transparent);
+}
+button.pri:hover {
+  background: color-mix(in srgb, var(--tx) 80%, var(--bg));
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px color-mix(in srgb, var(--tx) 40%, transparent);
+}
+button.b:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; box-shadow: none !important; }
+
+/* Toggle Switch */
+.toggle-switch { display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 14px; font-weight: 500; color: var(--mut); }
+.toggle-switch input { display: none; }
+.toggle-switch .slider {
+  width: 40px; height: 22px; background: var(--bd); border-radius: 99px;
+  position: relative; transition: background 0.3s;
+}
+.toggle-switch .slider::after {
+  content: ''; position: absolute; top: 2px; left: 2px;
+  width: 18px; height: 18px; background: #fff; border-radius: 50%;
+  transition: transform 0.3s;
+  box-shadow: var(--shadow-sm);
+}
+.toggle-switch input:checked + .slider { background: var(--ok); }
+.toggle-switch input:checked + .slider::after { transform: translateX(18px); }
+
+/* Drop Zone */
+.drop {
+  border: 2px dashed var(--bd); border-radius: var(--radius);
+  padding: 32px; text-align: center; color: var(--mut);
+  cursor: pointer; transition: all 0.2s; background: var(--hl);
+}
+.drop:hover, .drop.ov { border-color: var(--P1); background: color-mix(in srgb, var(--P1) 5%, var(--hl)); color: var(--P1); }
+
+/* Messages */
+.msg { margin: 12px 0 0; padding: 12px 16px; border-radius: var(--radius-sm); background: var(--hl); font-size: 14px; font-weight: 500; }
+.msg:empty { display: none; }
+.msg.er { color: var(--bad); background: color-mix(in srgb, var(--bad) 10%, transparent); }
+
+/* ============================================================
+   CARTES DE STYLE DÉTAILLÉES
+   ============================================================ */
+.g-card { display: flex; flex-direction: column; gap: 10px; }
+.g-card .g-desc { font-size: 13px; color: var(--mut); margin-bottom: 10px; line-height: 1.5; }
+.g-card .g-name { font-size: 22px; font-weight: 800; display: flex; justify-content: space-between; align-items: baseline; letter-spacing: -0.5px; }
+.g-card .g-name span:last-child { font-size: 32px; color: var(--c); }
+.g-card .g-sub { font-size: 14px; color: var(--mut); font-weight: 500; }
+.g-card .g-stats { font-size: 14px; line-height: 1.7; margin-top: 4px; font-variant-numeric: tabular-nums; }
+.g-card .g-bar { display: flex; height: 12px; border-radius: 6px; overflow: hidden; margin: 12px 0 8px; box-shadow: var(--shadow-sm); }
+.g-card .g-bar i { display: block; height: 100%; }
+.g-card .g-legend { font-size: 12px; color: var(--mut); display: flex; justify-content: space-between; font-weight: 500; }
+.g-card .g-next { font-size: 13px; color: var(--mut); margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--bd); line-height: 1.5; }
 </style>
 </head>
 <body>
@@ -61,15 +308,15 @@ button.b{cursor:pointer;font-weight:600}button.pri{background:var(--tx);color:va
   <p class="sub" id="sub"></p>
   <div class="msg" id="stat"></div>
 
-  <h2 class="sec">Bilan</h2><div class="grid" id="kp"></div>
+  <h2 class="sec">Bilan de la saison</h2><div class="grid" id="kp"></div>
 
   <h2 class="sec">Meilleurs picks disponibles par style</h2>
   <p class="hlp" id="galn"></p>
   <div class="grid" id="gal"></div>
-  <div class="grid" id="gal-styles" style="margin-top:14px"></div>
+  <div class="grid" id="gal-styles" style="margin-top:20px"></div>
 
   <h2 class="sec">Évolution</h2>
-  <p class="hlp" style="margin-top:-8px;margin-bottom:12px">💡 <b>Astuce :</b> Utilisez la molette pour zoomer, cliquez-glissez pour vous déplacer, et cliquez sur une ligne pour filtrer sur ce profil.</p>
+  <p class="hlp" style="margin-top:-8px;margin-bottom:16px">💡 <b>Astuce :</b> Molette pour zoomer, cliquez-glissez pour vous déplacer, cliquez sur une ligne pour filtrer sur ce profil.</p>
   <div class="grid">
     <div class="card"><h3 id="t1"></h3><p class="n" id="n1"></p><div class="cv"><canvas id="c1"></canvas></div></div>
     <div class="card"><h3>Cumul de points</h3><p class="n" id="n2"></p><div class="cv"><canvas id="c2"></canvas></div></div>
@@ -82,55 +329,63 @@ button.b{cursor:pointer;font-weight:600}button.pri{background:var(--tx);color:va
   </div>
 
   <h2 class="sec">Historique des picks</h2>
-  <div class="card"><div class="tb"><table id="t"></table></div></div>
+  <div class="card" style="padding:0;overflow:hidden"><div class="tb"><table id="t"></table></div></div>
 
-  <h2 class="sec" id="imp">Importer ou modifier les données</h2>
+  <h2 class="sec" id="imp">Gestion des données</h2>
   <div class="grid">
     <div class="card">
-      <h3>Importer un historique</h3>
+      <h3>Importer un historique de picks</h3>
       <p class="n">Fichier TSV ou CSV avec les colonnes Date, Joueur, Pts, Reb, Ast, Stl, Blk, Ftm, Fgm, Fg3m, Malus, Score.</p>
       <div class="ctl"><select id="ip"></select><input id="in" placeholder="Nom du nouveau profil" style="display:none"></div>
       <div class="ctl">
         <label><input type="radio" name="md" value="m" checked> Fusionner</label>
         <label><input type="radio" name="md" value="r"> Remplacer</label>
       </div>
-      <div class="drop" id="dz">Glisse un fichier ici ou clique<input type="file" id="fi" accept=".md,.tsv,.csv,.txt,text/*" hidden></div>
+      <div class="drop" id="dz">Glissez votre fichier ici ou cliquez pour choisir<input type="file" id="fi" accept=".md,.tsv,.csv,.txt,text/*" hidden></div>
       <div class="msg" id="pv"></div>
-      <div class="ctl" style="margin-top:10px"><button class="b pri" id="go" disabled>Importer</button></div>
+      <div class="ctl" style="margin-top:16px"><button class="b pri" id="go" disabled>Importer l'historique</button></div>
     </div>
     <div class="card">
       <h3>Ajouter un pick à la main</h3>
-      <div class="ctl"><input type="date" id="ad"><input class="g" id="aj" placeholder="Joueur"></div>
+      <p class="n">S’ajoute au profil choisi à gauche (ou le remplace si la date existe déjà).</p>
+      <div class="ctl"><input type="date" id="ad" style="flex:1"><input class="g" id="aj" placeholder="Nom du joueur"></div>
       <div class="ctl">
-        <input id="as" type="number" placeholder="Score" style="width:100px">
-        <input id="am" type="number" placeholder="Malus" style="width:100px">
-        <input id="ap" type="number" placeholder="Pts" style="width:80px">
-        <input id="ar" type="number" placeholder="Reb" style="width:80px">
-        <input id="aa" type="number" placeholder="Ast" style="width:80px">
+        <input id="as" type="number" placeholder="Score TTFL" style="flex:1">
+        <input id="am" type="number" placeholder="Malus" style="flex:1">
       </div>
       <div class="ctl">
-        <button class="b pri" id="ab">Ajouter</button>
-        <button class="b" id="rs">Réinitialiser le profil</button>
+        <input id="ap" type="number" placeholder="Pts" style="flex:1">
+        <input id="ar" type="number" placeholder="Reb" style="flex:1">
+        <input id="aa" type="number" placeholder="Ast" style="flex:1">
+      </div>
+      <div class="ctl" style="margin-top:16px">
+        <button class="b pri" id="ab">Ajouter le pick</button>
+        <button class="b" id="rs" style="color:var(--bad)">Réinitialiser le profil</button>
       </div>
     </div>
   </div>
 
-  <div class="card" style="margin-top:14px">
+  <div class="card" style="margin-top:20px">
     <h3>Importer des boxscores</h3>
-    <p class="n">Dépose ton fichier <b>.xlsx / .xls / .ods</b> (un onglet par date) ou un <b>CSV</b> (Date, Joueur, Equipe, Adversaire, Domicile, Minutes, FGM, FGA, 3PM, 3PA, FTM, FTA, REB, AST, STL, BLK, TOV, PTS, Statut).</p>
+    <p class="n">Déposez un fichier <b>.xlsx / .xls / .ods</b> (format Basketball-Reference, un onglet par date) ou un <b>CSV</b> plat contenant les stats de la nuit.</p>
     
-    <div class="drop" id="bdz">Glisse un fichier ici ou clique pour le choisir<input type="file" id="bfi" accept=".ods,.xlsx,.xls,.csv,.tsv,.txt" hidden></div>
+    <div class="drop" id="bdz">Glissez votre fichier Excel ou CSV ici<input type="file" id="bfi" accept=".ods,.xlsx,.xls,.csv,.tsv,.txt" hidden></div>
     
-    <p class="hlp" style="margin:10px 0 6px">OU colle du texte :</p>
-    <div class="ctl"><textarea id="bta" rows="3" class="g" placeholder="Colle ici les lignes CSV avec en-tête"></textarea><button class="b" id="bpa">Analyser</button></div>
+    <p class="hlp" style="margin:16px 0 8px;font-weight:600">OU collez du texte brut (CSV / TSV) :</p>
+    <div class="ctl"><textarea id="bta" rows="3" class="g" placeholder="Date, Joueur, Equipe, Adversaire, Domicile, Minutes, FGM, FGA, 3PM, 3PA, FTM, FTA, REB, AST, STL, BLK, TOV, PTS, Statut..."></textarea><button class="b" id="bpa">Analyser le texte</button></div>
     
     <div class="msg" id="bpv"></div>
-    <div class="ctl"><button class="b pri" id="bgo" disabled>Importer les boxscores</button><select id="bds"></select><button class="b" id="bdel">Suppr. jour</button></div>
+    <div class="ctl" style="margin-top:16px">
+      <button class="b pri" id="bgo" disabled>Importer les boxscores</button>
+      <div style="flex:1"></div>
+      <select id="bds" style="width:200px"></select>
+      <button class="b" id="bdel" style="color:var(--bad)">Supprimer ce jour</button>
+    </div>
   </div>
 
-  <div class="card" style="margin-top:14px">
+  <div class="card" style="margin-top:20px">
     <h3>Exporter pour la version publique</h3>
-    <p class="n">Télécharge un <b>data.json</b> à déposer à la racine du dépôt.</p>
+    <p class="n">Téléchargez le fichier <b>data.json</b> mis à jour et déposez-le à la racine de votre dépôt GitHub pour mettre à jour le site.</p>
     <div class="ctl"><button class="b pri" id="ex">Exporter data.json</button></div>
     <p class="hlp" id="exn"></p>
   </div>
@@ -138,33 +393,35 @@ button.b{cursor:pointer;font-weight:600}button.pri{background:var(--tx);color:va
   <h2 class="sec">Joueurs</h2>
   <div class="grid">
     <div class="card"><h3 id="t5"></h3><p class="n" id="n5">TTFL moyen sur les 5 derniers matchs (cliquez sur une barre)</p><div class="cv tall"><canvas id="c5"></canvas></div></div>
-    <div class="card"><h3>Régularité</h3><p class="n">Forte moyenne et peu de variations = en haut à gauche.</p><div class="cv tall"><canvas id="c6"></canvas></div></div>
+    <div class="card"><h3>Régularité</h3><p class="n">En haut à gauche : forte moyenne et peu de variations. La recherche met en valeur le joueur.</p><div class="cv tall"><canvas id="c6"></canvas></div></div>
   </div>
 
   <h2 class="sec">Risque et rôle des joueurs</h2>
   <p class="hlp">Chaque point est un joueur éligible (≥ 3 matchs, ≥ 15 min). Molette pour zoomer, clic pour rechercher un joueur.</p>
-  <div class="grid" style="margin-top:10px">
-    <div class="card"><h3>Fourchette de score</h3><p class="n">P20–P80, médiane, moyenne 5 derniers.</p><div class="cv tall"><canvas id="c7"></canvas></div></div>
-    <div class="card"><h3>Sécurité et ambition</h3><p class="n">% au-dessus de 35 vs moyenne.</p><div class="cv tall"><canvas id="c8"></canvas></div></div>
-    <div class="card"><h3>Rendement par minute</h3><p class="n">Score par minute vs minutes moyennes.</p><div class="cv tall"><canvas id="c9"></canvas></div></div>
-    <div class="card"><h3>Régularité vs volume</h3><p class="n">Écart-type vs moyenne.</p><div class="cv tall"><canvas id="c10"></canvas></div></div>
+  <div class="grid" style="margin-top:16px">
+    <div class="card"><h3>Fourchette de score</h3><p class="n">Barre = P20 à P80 (60 % des matchs), trait = médiane, point = moyenne des 5 derniers.</p><div class="cv tall"><canvas id="c7"></canvas></div></div>
+    <div class="card"><h3>Sécurité et ambition</h3><p class="n">En haut à droite : presque toujours au-dessus de 25 et capable de dépasser 35.</p><div class="cv tall"><canvas id="c8"></canvas></div></div>
+    <div class="card"><h3>Rendement par minute</h3><p class="n">En haut : produit beaucoup par minute. À droite : joue beaucoup. Les deux : valeur sûre.</p><div class="cv tall"><canvas id="c9"></canvas></div></div>
+    <div class="card"><h3>Stabilité et volume</h3><p class="n">À droite : volume de points élevé. En bas : peu de variations (score fiable).</p><div class="cv tall"><canvas id="c10"></canvas></div></div>
   </div>
 
   <h2 class="sec">Tableau des joueurs</h2>
-  <div class="card" style="margin-top:14px">
+  <div class="card" style="margin-top:16px">
     <div class="ctl">
-      <input class="g" id="q" placeholder="Rechercher un joueur ou une équipe">
+      <input class="g" id="q" placeholder="🔍 Rechercher un joueur ou une équipe...">
       <select id="tv">
         <option value="base">Vue : Forme TTFL</option>
         <option value="stats">Vue : Stats brutes (par match)</option>
         <option value="risk">Vue : Risque et rôle</option>
       </select>
       <select id="fl"></select>
-      <label style="display:flex;align-items:center;gap:6px;font-size:14px;cursor:pointer">
-        <input type="checkbox" id="hide-inactive" checked> Masquer les joueurs inactifs
+      <label class="toggle-switch">
+        <input type="checkbox" id="hide-inactive" checked>
+        <span class="slider"></span>
+        Masquer les inactifs
       </label>
     </div>
-    <div class="tb"><table id="pt"></table></div>
+    <div class="tb" style="border:none"><table id="pt"></table></div>
   </div>
 </div>
 
@@ -347,17 +604,15 @@ function computeAggregates(box) {
     const u35 = Math.round(100 * scores.filter(s => s >= 35).length / n);
     const u25 = Math.round(100 * scores.filter(s => s >= 25).length / n);
     
-    // --- NOUVEAU : Filtre de récence ---
+    // Filtre de récence
     let lastGameDate = "";
     games.forEach(g => { if(g.iso > lastGameDate) lastGameDate = g.iso; });
     const daysSinceLastGame = (new Date(maxDateStr) - new Date(lastGameDate)) / (1000 * 60 * 60 * 24);
-    const isActive = daysSinceLastGame <= 10; // Considéré actif s'il a joué dans les 10 derniers jours
+    const isActive = daysSinceLastGame <= 10;
 
     const team = Object.entries(info.teams).sort((a,b)=>b[1]-a[1])[0]?.[0] || "?";
-    // --- CORRECTION : Recherche plus robuste du poste ---
     const pos = POS_NORM[key] || POS[key] || "?";
 
-    // --- NOUVEAU : Calcul des moyennes brutes ---
     const sumPts = games.reduce((a,g)=>a+g.pts,0);
     const sumReb = games.reduce((a,g)=>a+g.reb,0);
     const sumAst = games.reduce((a,g)=>a+g.ast,0);
@@ -392,7 +647,6 @@ function computeAggregates(box) {
       u25, u35, tpm: +(avg/Math.max(1,mnAvg)).toFixed(2),
       rb: +avgReb.toFixed(1),
       isActive,
-      // Stats brutes
       avgPts: +avgPts.toFixed(1),
       avgReb: +avgReb.toFixed(1),
       avgAst: +avgAst.toFixed(1),
@@ -524,7 +778,6 @@ function renderGalerie() {
   const galn = document.getElementById('galn');
   gal.innerHTML = ''; galStyles.innerHTML = '';
   
-  // Filtrage des joueurs inactifs
   const elig = ALL0.filter(x => x.g >= 3 && x.isActive && getDispoStatus(x.j, currentProfil).ok);
   
   if (!elig.length) {
@@ -644,9 +897,9 @@ function renderScatterChart(id, dataArr, xKey, yKey, xLabel, yLabel, q) {
   });
 
   const datasets = [
-    { label: 'Indisponibles', data: indispo, backgroundColor: 'rgba(200, 200, 200, 0.15)', pointRadius: 4 },
-    { label: 'Disponibles', data: dispo, backgroundColor: 'rgba(28, 126, 214, 0.4)', pointRadius: 5 },
-    { label: 'Recherche', data: match, backgroundColor: 'var(--P0)', borderColor: 'var(--tx)', borderWidth: 2, pointRadius: 8, pointHoverRadius: 10, z: 10 }
+    { label: 'Indisponibles', data: indispo, backgroundColor: 'rgba(150, 150, 150, 0.2)', pointRadius: 4 },
+    { label: 'Disponibles', data: dispo, backgroundColor: 'rgba(59, 130, 246, 0.5)', pointRadius: 5 },
+    { label: 'Recherche', data: match, backgroundColor: 'var(--P0)', borderColor: '#fff', borderWidth: 2, pointRadius: 8, pointHoverRadius: 10, z: 10 }
   ];
 
   charts[id] = new Chart(document.getElementById(id), {
@@ -655,11 +908,21 @@ function renderScatterChart(id, dataArr, xKey, yKey, xLabel, yLabel, q) {
     options: {
       responsive: true, maintainAspectRatio: false,
       interaction: { mode: 'nearest', intersect: true },
-      scales: { x: { title: { display: true, text: xLabel } }, y: { title: { display: true, text: yLabel } } },
+      scales: { 
+        x: { title: { display: true, text: xLabel }, grid: { color: getCss('--grid') } }, 
+        y: { title: { display: true, text: yLabel }, grid: { color: getCss('--grid') } } 
+      },
       plugins: {
         legend: { display: false },
         zoom: { pan: { enabled: true, mode: 'xy' }, zoom: { wheel: { enabled: true }, pinch: { enabled: true }, mode: 'xy' } },
-        tooltip: { callbacks: { label: c => `${c.raw.j}: ${c.raw.y.toFixed(1)} (${getDispoStatus(c.raw.j, currentProfil).label})` } }
+        tooltip: { 
+          backgroundColor: 'rgba(30, 41, 59, 0.9)',
+          titleFont: { size: 14, weight: 'bold' },
+          bodyFont: { size: 14 },
+          padding: 12,
+          cornerRadius: 8,
+          callbacks: { label: c => `${c.raw.j}: ${c.raw.y.toFixed(1)} (${getDispoStatus(c.raw.j, currentProfil).label})` } 
+        }
       },
       onClick: (e, activeEls) => {
         if (activeEls.length > 0) {
@@ -695,6 +958,7 @@ function renderCharts(filtre) {
       data: allDates.map(d => pickMap[d] !== undefined ? pickMap[d] : null), 
       tension: .3, 
       pointRadius: 3,
+      pointHoverRadius: 6,
       spanGaps: true
     };
   });
@@ -704,9 +968,10 @@ function renderCharts(filtre) {
     options:{
       responsive:true, maintainAspectRatio:false, 
       interaction: { mode: 'index', intersect: false },
-      scales:{x:{type:'category'}, y:{beginAtZero:true}}, 
+      scales:{x:{type:'category', grid: { display: false }}, y:{beginAtZero:true, grid: { color: getCss('--grid') }}}, 
       plugins:{
-        legend:{position:'bottom'},
+        legend:{position:'bottom', labels: { usePointStyle: true, boxWidth: 8 }},
+        tooltip: { backgroundColor: 'rgba(30, 41, 59, 0.9)', padding: 12, cornerRadius: 8 },
         zoom: { pan: { enabled: true, mode: 'x' }, zoom: { wheel: { enabled: true }, pinch: { enabled: true }, mode: 'x' } }
       },
       onClick: (e, activeEls) => {
@@ -737,7 +1002,8 @@ function renderCharts(filtre) {
       backgroundColor: getUniqueColor(i, profils.length),
       data: data, 
       tension: .3, 
-      pointRadius: 2 
+      pointRadius: 2,
+      pointHoverRadius: 5
     };
   });
   charts.c2 = new Chart(document.getElementById('c2'), {
@@ -746,9 +1012,10 @@ function renderCharts(filtre) {
     options:{
       responsive:true, maintainAspectRatio:false, 
       interaction: { mode: 'index', intersect: false },
-      scales:{x:{type:'category'}, y:{beginAtZero:true}}, 
+      scales:{x:{type:'category', grid: { display: false }}, y:{beginAtZero:true, grid: { color: getCss('--grid') }}}, 
       plugins:{
-        legend:{position:'bottom'},
+        legend:{position:'bottom', labels: { usePointStyle: true, boxWidth: 8 }},
+        tooltip: { backgroundColor: 'rgba(30, 41, 59, 0.9)', padding: 12, cornerRadius: 8 },
         zoom: { pan: { enabled: true, mode: 'x' }, zoom: { wheel: { enabled: true }, pinch: { enabled: true }, mode: 'x' } }
       },
       onClick: (e, activeEls) => {
@@ -768,8 +1035,8 @@ function renderCharts(filtre) {
   const counts = bins.map(([a,b]) => allPicks.filter(x => x.s >= a && x.s < b).length);
   charts.c3 = new Chart(document.getElementById('c3'), {
     type:'bar',
-    data:{labels: bins.map(([a,b]) => `${a}–${b}`), datasets:[{ label:'Picks', data: counts, backgroundColor: getCss('--P1') }]},
-    options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true}}}
+    data:{labels: bins.map(([a,b]) => `${a}–${b}`), datasets:[{ label:'Picks', data: counts, backgroundColor: getCss('--P1'), borderRadius: 6 }]},
+    options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}, tooltip: { backgroundColor: 'rgba(30, 41, 59, 0.9)', padding: 12, cornerRadius: 8 }}, scales:{y:{beginAtZero:true, grid: { color: getCss('--grid') }}, x: { grid: { display: false } }}}
   });
 
   destroyChart('c4');
@@ -779,7 +1046,11 @@ function renderCharts(filtre) {
       label: p, backgroundColor: getUniqueColor(i, profils.length),
       data: (SEED[p]||[]).filter(x => x.s !== undefined).map(x => ({x:x.m||0, y:x.s}))
     }))},
-    options:{responsive:true, maintainAspectRatio:false, scales:{x:{title:{display:true,text:'Malus'}}, y:{title:{display:true,text:'Score'}}}, plugins:{legend:{position:'bottom'}}}
+    options:{
+      responsive:true, maintainAspectRatio:false, 
+      scales:{x:{title:{display:true,text:'Malus'}, grid: { color: getCss('--grid') }}, y:{title:{display:true,text:'Score'}, grid: { color: getCss('--grid') }}}, 
+      plugins:{legend:{position:'bottom', labels: { usePointStyle: true, boxWidth: 8 }}, tooltip: { backgroundColor: 'rgba(30, 41, 59, 0.9)', padding: 12, cornerRadius: 8 }}
+    }
   });
 
   destroyChart('c5');
@@ -787,9 +1058,11 @@ function renderCharts(filtre) {
   const topM5 = [...activePlayers].sort((a,b)=>b.m5-a.m5).slice(0,15);
   charts.c5 = new Chart(document.getElementById('c5'), {
     type:'bar',
-    data:{ labels: topM5.map(x=>x.j), datasets:[{ data: topM5.map(x=>x.m5), backgroundColor: getCss('--P2') }]},
+    data:{ labels: topM5.map(x=>x.j), datasets:[{ data: topM5.map(x=>x.m5), backgroundColor: getCss('--P2'), borderRadius: 6 }]},
     options:{
-      indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}},
+      indexAxis:'y', responsive:true, maintainAspectRatio:false, 
+      plugins:{legend:{display:false}, tooltip: { backgroundColor: 'rgba(30, 41, 59, 0.9)', padding: 12, cornerRadius: 8 }},
+      scales: { x: { grid: { color: getCss('--grid') } }, y: { grid: { display: false } } },
       onClick: (e, activeEls) => {
         if (activeEls.length > 0) {
           const playerName = topM5[activeEls[0].index].j;
@@ -808,12 +1081,14 @@ function renderCharts(filtre) {
   charts.c7 = new Chart(document.getElementById('c7'), {
     type:'bar',
     data:{ labels: top20.map(x=>x.j), datasets:[
-        { label:'P20', data: top20.map(x=>x.p20), backgroundColor: getCss('--P3') },
-        { label:'P50', data: top20.map(x=>x.p50), backgroundColor: getCss('--P1') },
-        { label:'P80', data: top20.map(x=>x.p80), backgroundColor: getCss('--P0') }
+        { label:'P20', data: top20.map(x=>x.p20), backgroundColor: getCss('--P3'), borderRadius: 4 },
+        { label:'P50', data: top20.map(x=>x.p50), backgroundColor: getCss('--P1'), borderRadius: 4 },
+        { label:'P80', data: top20.map(x=>x.p80), backgroundColor: getCss('--P0'), borderRadius: 4 }
     ]},
     options:{
-      indexAxis:'y', responsive:true, maintainAspectRatio:false, scales:{x:{beginAtZero:true}},
+      indexAxis:'y', responsive:true, maintainAspectRatio:false, 
+      scales:{x:{beginAtZero:true, grid: { color: getCss('--grid') }}, y: { grid: { display: false } }},
+      plugins: { tooltip: { backgroundColor: 'rgba(30, 41, 59, 0.9)', padding: 12, cornerRadius: 8 } },
       onClick: (e, activeEls) => {
         if (activeEls.length > 0) {
           const playerName = top20[activeEls[0].index].j;
@@ -861,26 +1136,19 @@ function renderPlayersTable() {
 
   let data = ALL0.filter(x => x.g >= 3);
   
-  // Filtre inactifs
   if (hideInactive) data = data.filter(x => x.isActive);
-  
-  // Filtres textuels
   if (q) data = data.filter(x => normStr(x.j).includes(q) || normStr(x.t).includes(q));
   if (filtrePos) data = data.filter(x => x.p === filtrePos);
 
   // Tri global
   data.sort((a, b) => {
-    // Les disponibles d'abord
     const da = getDispoStatus(a.j, currentProfil).ok;
     const db = getDispoStatus(b.j, currentProfil).ok;
     if (da !== db) return da ? -1 : 1;
     
-    // Puis le tri sélectionné par l'utilisateur
     let valA = a[currentSort.col];
     let valB = b[currentSort.col];
-    if (typeof valA === 'string') {
-      return valA.localeCompare(valB) * currentSort.dir;
-    }
+    if (typeof valA === 'string') return valA.localeCompare(valB) * currentSort.dir;
     return (valA - valB) * currentSort.dir;
   });
 
@@ -975,13 +1243,12 @@ function renderPlayersTable() {
   }
 }
 
-// Fonction de tri globale
 window.sortBy = function(col) {
   if (currentSort.col === col) {
-    currentSort.dir *= -1; // Inverse le sens
+    currentSort.dir *= -1;
   } else {
     currentSort.col = col;
-    currentSort.dir = -1; // Par défaut, décroissant (plus grand en premier)
+    currentSort.dir = -1;
   }
   renderPlayersTable();
 };
@@ -1131,9 +1398,6 @@ document.getElementById('go').onclick = () => {
   renderAll();
 };
 
-/* ============================================================
-   IMPORT BOXSCORES
-   ============================================================ */
 document.getElementById('bpa').onclick = () => {
   const txt = document.getElementById('bta').value;
   const parsed = parserBox(txt);
