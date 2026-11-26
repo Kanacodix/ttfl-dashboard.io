@@ -4,7 +4,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Dashboard TTFL interactif</title>
-<!-- Ajout du plugin de Zoom -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -29,8 +28,10 @@ h2.sec{font-size:19px;margin:28px 0 12px;padding-left:10px;border-left:4px solid
 .solo{grid-column:1/-1}.solo .kt{grid-template-columns:repeat(auto-fit,minmax(130px,1fr))}.solo .kt b{font-size:32px}
 .cv{position:relative;height:290px}.cv.tall{height:440px}
 .tb{overflow-x:auto;max-height:520px;overflow-y:auto}table{border-collapse:collapse;width:100%;font-size:14px}
-th{position:sticky;top:0;background:var(--card);color:var(--mut);font-weight:600;text-align:left;padding:8px;border-bottom:2px solid var(--bd);white-space:nowrap}
-td{padding:7px 8px;border-bottom:1px solid var(--bd);white-space:nowrap}tr:hover td{background:var(--hl)}td.r{text-align:right;font-variant-numeric:tabular-nums}th.s{cursor:pointer}
+th{position:sticky;top:0;background:var(--card);color:var(--mut);font-weight:600;text-align:left;padding:8px;border-bottom:2px solid var(--bd);white-space:nowrap;cursor:pointer;user-select:none}
+th:hover{color:var(--tx)}
+th.r{text-align:right}th .arrow{font-size:10px;margin-left:4px;opacity:0.5}
+td{padding:7px 8px;border-bottom:1px solid var(--bd);white-space:nowrap}tr:hover td{background:var(--hl)}td.r{text-align:right;font-variant-numeric:tabular-nums}
 .chip{display:inline-block;min-width:38px;text-align:center;padding:1px 8px;border-radius:8px;font-weight:700;font-size:13px}
 .lo{background:color-mix(in srgb,var(--bad) 18%,transparent);color:var(--bad)}.hi{background:color-mix(in srgb,var(--ok) 20%,transparent);color:var(--ok)}.md{background:var(--hl)}
 .free{color:var(--ok);font-weight:600}.lk{color:var(--mut)}.dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px}
@@ -153,8 +154,15 @@ button.b{cursor:pointer;font-weight:600}button.pri{background:var(--tx);color:va
   <div class="card" style="margin-top:14px">
     <div class="ctl">
       <input class="g" id="q" placeholder="Rechercher un joueur ou une équipe">
-      <select id="tv"><option value="base">Vue : Forme</option><option value="risk">Vue : Risque</option></select>
+      <select id="tv">
+        <option value="base">Vue : Forme TTFL</option>
+        <option value="stats">Vue : Stats brutes (par match)</option>
+        <option value="risk">Vue : Risque et rôle</option>
+      </select>
       <select id="fl"></select>
+      <label style="display:flex;align-items:center;gap:6px;font-size:14px;cursor:pointer">
+        <input type="checkbox" id="hide-inactive" checked> Masquer les joueurs inactifs
+      </label>
     </div>
     <div class="tb"><table id="pt"></table></div>
   </div>
@@ -176,6 +184,9 @@ let PL   = [];
 let charts = {};
 let currentProfil = 'all';
 let maxDateStr = "";
+
+// Tri par défaut
+let currentSort = { col: 's', dir: -1 };
 
 const normStr = s => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 const cleanNameKey = s => s ? s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, '').toLowerCase() : "";
@@ -336,8 +347,32 @@ function computeAggregates(box) {
     const u35 = Math.round(100 * scores.filter(s => s >= 35).length / n);
     const u25 = Math.round(100 * scores.filter(s => s >= 25).length / n);
     
+    // --- NOUVEAU : Filtre de récence ---
+    let lastGameDate = "";
+    games.forEach(g => { if(g.iso > lastGameDate) lastGameDate = g.iso; });
+    const daysSinceLastGame = (new Date(maxDateStr) - new Date(lastGameDate)) / (1000 * 60 * 60 * 24);
+    const isActive = daysSinceLastGame <= 10; // Considéré actif s'il a joué dans les 10 derniers jours
+
     const team = Object.entries(info.teams).sort((a,b)=>b[1]-a[1])[0]?.[0] || "?";
-    const pos = POS_NORM[key] || "?";
+    // --- CORRECTION : Recherche plus robuste du poste ---
+    const pos = POS_NORM[key] || POS[key] || "?";
+
+    // --- NOUVEAU : Calcul des moyennes brutes ---
+    const sumPts = games.reduce((a,g)=>a+g.pts,0);
+    const sumReb = games.reduce((a,g)=>a+g.reb,0);
+    const sumAst = games.reduce((a,g)=>a+g.ast,0);
+    const sumStl = games.reduce((a,g)=>a+g.stl,0);
+    const sumBlk = games.reduce((a,g)=>a+g.blk,0);
+    const sumTov = games.reduce((a,g)=>a+g.tov,0);
+    const sumTpm = games.reduce((a,g)=>a+g.tpm,0);
+    
+    const avgPts = sumPts / n;
+    const avgReb = sumReb / n;
+    const avgAst = sumAst / n;
+    const avgStl = sumStl / n;
+    const avgBlk = sumBlk / n;
+    const avgTov = sumTov / n;
+    const avgTpm = sumTpm / n;
 
     const sum_scoring = games.reduce((a,g)=>a+(g.pts + g.fgm + g.tpm + g.ftm),0);
     const sum_pm = games.reduce((a,g)=>a+(g.ast + g.stl),0);
@@ -355,8 +390,16 @@ function computeAggregates(box) {
       s: +avg.toFixed(1), sd: +sd.toFixed(1),
       p20: +p20.toFixed(1), p50: +p50.toFixed(1), p80: +p80.toFixed(1),
       u25, u35, tpm: +(avg/Math.max(1,mnAvg)).toFixed(2),
-      rb: +(games.reduce((a,g)=>a+g.reb,0)/n).toFixed(1),
-      sc: +(games.reduce((a,g)=>a+g.pts,0)/n).toFixed(1),
+      rb: +avgReb.toFixed(1),
+      isActive,
+      // Stats brutes
+      avgPts: +avgPts.toFixed(1),
+      avgReb: +avgReb.toFixed(1),
+      avgAst: +avgAst.toFixed(1),
+      avgStl: +avgStl.toFixed(1),
+      avgBlk: +avgBlk.toFixed(1),
+      avgTov: +avgTov.toFixed(1),
+      avgTpm: +avgTpm.toFixed(1),
       pct_sc, pct_pm, pct_rb, pct_hors,
       sum_sc: sum_scoring/n, sum_pm: sum_pm/n, sum_rb: sum_rb/n
     });
@@ -481,7 +524,8 @@ function renderGalerie() {
   const galn = document.getElementById('galn');
   gal.innerHTML = ''; galStyles.innerHTML = '';
   
-  const elig = ALL0.filter(x => x.g >= 3 && getDispoStatus(x.j, currentProfil).ok);
+  // Filtrage des joueurs inactifs
+  const elig = ALL0.filter(x => x.g >= 3 && x.isActive && getDispoStatus(x.j, currentProfil).ok);
   
   if (!elig.length) {
     galn.textContent = "Aucun joueur disponible ne correspond aux critères pour ce profil.";
@@ -508,7 +552,7 @@ function renderGalerie() {
       ).join('');
     gal.appendChild(card);
   });
-  galn.textContent = `Basé sur ${elig.length} joueurs disponibles (≥ 3 matchs) ${currentProfil !== 'all' ? `pour le profil ${currentProfil}` : ''}.`;
+  galn.textContent = `Basé sur ${elig.length} joueurs disponibles et actifs (≥ 3 matchs, pas de blessure récente).`;
 
   const catDefs = [
     { id:'Scoreurs', emoji:'🎯', desc:'Leur score vient des points et des tirs réussis. Gros plafond, mais lourds malus les soirs sans adresse.', tri: x=>x.sum_sc },
@@ -581,7 +625,10 @@ const customLabelsPlugin = {
 
 function renderScatterChart(id, dataArr, xKey, yKey, xLabel, yLabel, q) {
   destroyChart(id);
-  const base = dataArr.filter(x=>x.g>=3);
+  
+  const hideInact = document.getElementById('hide-inactive').checked;
+  const base = dataArr.filter(x => x.g >= 3 && (!hideInact || x.isActive));
+  
   const dispo = [], indispo = [], match = [];
   
   base.forEach(x => {
@@ -632,6 +679,7 @@ function renderScatterChart(id, dataArr, xKey, yKey, xLabel, yLabel, q) {
 function renderCharts(filtre) {
   const profils = filtre ? [filtre] : Object.keys(SEED);
   const q = (document.getElementById('q').value || '').trim();
+  const hideInact = document.getElementById('hide-inactive').checked;
 
   const allDates = [...new Set(PL.map(p => p.iso).filter(Boolean))].sort();
 
@@ -735,7 +783,8 @@ function renderCharts(filtre) {
   });
 
   destroyChart('c5');
-  const topM5 = [...ALL0].sort((a,b)=>b.m5-a.m5).slice(0,15);
+  const activePlayers = ALL0.filter(x => !hideInact || x.isActive);
+  const topM5 = [...activePlayers].sort((a,b)=>b.m5-a.m5).slice(0,15);
   charts.c5 = new Chart(document.getElementById('c5'), {
     type:'bar',
     data:{ labels: topM5.map(x=>x.j), datasets:[{ data: topM5.map(x=>x.m5), backgroundColor: getCss('--P2') }]},
@@ -755,7 +804,7 @@ function renderCharts(filtre) {
   renderScatterChart('c6', ALL0, 'sd', 's', 'Écart-type', 'Moyenne', q);
   
   destroyChart('c7');
-  const top20 = [...ALL0].sort((a,b)=>b.s-a.s).slice(0,20);
+  const top20 = [...activePlayers].sort((a,b)=>b.s-a.s).slice(0,20);
   charts.c7 = new Chart(document.getElementById('c7'), {
     type:'bar',
     data:{ labels: top20.map(x=>x.j), datasets:[
@@ -808,35 +857,51 @@ function renderPlayersTable() {
   const q = normStr(document.getElementById('q').value || '');
   const vue = document.getElementById('tv').value;
   const filtrePos = document.getElementById('fl').value;
+  const hideInactive = document.getElementById('hide-inactive').checked;
 
   let data = ALL0.filter(x => x.g >= 3);
+  
+  // Filtre inactifs
+  if (hideInactive) data = data.filter(x => x.isActive);
+  
+  // Filtres textuels
   if (q) data = data.filter(x => normStr(x.j).includes(q) || normStr(x.t).includes(q));
   if (filtrePos) data = data.filter(x => x.p === filtrePos);
 
-  if (vue === 'base') {
-    data.sort((a,b) => {
-      const da = getDispoStatus(a.j, currentProfil).ok;
-      const db = getDispoStatus(b.j, currentProfil).ok;
-      if (da !== db) return da ? -1 : 1;
-      return b.s - a.s;
-    });
-  } else {
-    data.sort((a,b) => {
-      const da = getDispoStatus(a.j, currentProfil).ok;
-      const db = getDispoStatus(b.j, currentProfil).ok;
-      if (da !== db) return da ? -1 : 1;
-      return b.u35 - a.u35 || a.sd - b.sd;
-    });
-  }
+  // Tri global
+  data.sort((a, b) => {
+    // Les disponibles d'abord
+    const da = getDispoStatus(a.j, currentProfil).ok;
+    const db = getDispoStatus(b.j, currentProfil).ok;
+    if (da !== db) return da ? -1 : 1;
+    
+    // Puis le tri sélectionné par l'utilisateur
+    let valA = a[currentSort.col];
+    let valB = b[currentSort.col];
+    if (typeof valA === 'string') {
+      return valA.localeCompare(valB) * currentSort.dir;
+    }
+    return (valA - valB) * currentSort.dir;
+  });
+
+  const arrow = col => currentSort.col === col ? (currentSort.dir === 1 ? '▲' : '▼') : '';
 
   const pt = document.getElementById('pt');
+  
   if (vue === 'base') {
     pt.innerHTML = `
       <thead><tr>
-        <th>Statut</th><th>Joueur</th><th>Éq.</th><th>Pos.</th><th class="r">Matchs</th>
-        <th class="r">Min</th><th class="r">Moy.</th><th class="r">5 derniers</th><th class="r">σ</th>
+        <th>Statut</th>
+        <th onclick="sortBy('j')">Joueur ${arrow('j')}</th>
+        <th onclick="sortBy('t')">Éq. ${arrow('t')}</th>
+        <th onclick="sortBy('p')">Pos. ${arrow('p')}</th>
+        <th class="r" onclick="sortBy('g')">Matchs ${arrow('g')}</th>
+        <th class="r" onclick="sortBy('mn')">Min ${arrow('mn')}</th>
+        <th class="r" onclick="sortBy('s')">Moy. ${arrow('s')}</th>
+        <th class="r" onclick="sortBy('m5')">5 derniers ${arrow('m5')}</th>
+        <th class="r" onclick="sortBy('sd')">σ ${arrow('sd')}</th>
       </tr></thead>
-      <tbody>${data.slice(0,120).map(p => {
+      <tbody>${data.slice(0,150).map(p => {
         const status = getDispoStatus(p.j, currentProfil);
         return `
         <tr style="${status.ok ? '' : 'opacity:0.6'}">
@@ -848,14 +913,54 @@ function renderPlayersTable() {
         </tr>`;
       }).join('')}
       </tbody>`;
-  } else {
+  } 
+  else if (vue === 'stats') {
     pt.innerHTML = `
       <thead><tr>
-        <th>Statut</th><th>Joueur</th><th>Éq.</th><th>Pos.</th>
-        <th class="r">Moy.</th><th class="r">P20</th><th class="r">P50</th><th class="r">P80</th>
-        <th class="r">%≥35</th><th class="r">σ</th>
+        <th>Statut</th>
+        <th onclick="sortBy('j')">Joueur ${arrow('j')}</th>
+        <th onclick="sortBy('t')">Éq. ${arrow('t')}</th>
+        <th onclick="sortBy('p')">Pos. ${arrow('p')}</th>
+        <th class="r" onclick="sortBy('g')">MJ ${arrow('g')}</th>
+        <th class="r" onclick="sortBy('mn')">MIN ${arrow('mn')}</th>
+        <th class="r" onclick="sortBy('avgPts')">PTS ${arrow('avgPts')}</th>
+        <th class="r" onclick="sortBy('avgReb')">REB ${arrow('avgReb')}</th>
+        <th class="r" onclick="sortBy('avgAst')">AST ${arrow('avgAst')}</th>
+        <th class="r" onclick="sortBy('avgStl')">STL ${arrow('avgStl')}</th>
+        <th class="r" onclick="sortBy('avgBlk')">BLK ${arrow('avgBlk')}</th>
+        <th class="r" onclick="sortBy('avgTpm')">3PM ${arrow('avgTpm')}</th>
+        <th class="r" onclick="sortBy('avgTov')">TOV ${arrow('avgTov')}</th>
       </tr></thead>
-      <tbody>${data.slice(0,120).map(p => {
+      <tbody>${data.slice(0,150).map(p => {
+        const status = getDispoStatus(p.j, currentProfil);
+        return `
+        <tr style="${status.ok ? '' : 'opacity:0.6'}">
+          <td><span class="${status.ok ? 'badge-dispo' : 'badge-indispo'}">${status.label}</span></td>
+          <td>${p.j}</td><td>${p.t}</td><td>${p.p}</td>
+          <td class="r">${p.g}</td><td class="r">${p.mn}</td>
+          <td class="r"><b>${p.avgPts}</b></td><td class="r">${p.avgReb}</td>
+          <td class="r">${p.avgAst}</td><td class="r">${p.avgStl}</td>
+          <td class="r">${p.avgBlk}</td><td class="r">${p.avgTpm}</td>
+          <td class="r">${p.avgTov}</td>
+        </tr>`;
+      }).join('')}
+      </tbody>`;
+  } 
+  else {
+    pt.innerHTML = `
+      <thead><tr>
+        <th>Statut</th>
+        <th onclick="sortBy('j')">Joueur ${arrow('j')}</th>
+        <th onclick="sortBy('t')">Éq. ${arrow('t')}</th>
+        <th onclick="sortBy('p')">Pos. ${arrow('p')}</th>
+        <th class="r" onclick="sortBy('s')">Moy. ${arrow('s')}</th>
+        <th class="r" onclick="sortBy('p20')">P20 ${arrow('p20')}</th>
+        <th class="r" onclick="sortBy('p50')">P50 ${arrow('p50')}</th>
+        <th class="r" onclick="sortBy('p80')">P80 ${arrow('p80')}</th>
+        <th class="r" onclick="sortBy('u35')">%≥35 ${arrow('u35')}</th>
+        <th class="r" onclick="sortBy('sd')">σ ${arrow('sd')}</th>
+      </tr></thead>
+      <tbody>${data.slice(0,150).map(p => {
         const status = getDispoStatus(p.j, currentProfil);
         return `
         <tr style="${status.ok ? '' : 'opacity:0.6'}">
@@ -869,6 +974,17 @@ function renderPlayersTable() {
       </tbody>`;
   }
 }
+
+// Fonction de tri globale
+window.sortBy = function(col) {
+  if (currentSort.col === col) {
+    currentSort.dir *= -1; // Inverse le sens
+  } else {
+    currentSort.col = col;
+    currentSort.dir = -1; // Par défaut, décroissant (plus grand en premier)
+  }
+  renderPlayersTable();
+};
 
 function remplirSelecteurs() {
   const ip = document.getElementById('ip');
@@ -895,6 +1011,11 @@ document.getElementById('q').addEventListener('input', () => {
 });
 document.getElementById('tv').addEventListener('change', renderPlayersTable);
 document.getElementById('fl').addEventListener('change', renderPlayersTable);
+document.getElementById('hide-inactive').addEventListener('change', () => {
+  renderPlayersTable();
+  const p = currentProfil === 'all' ? undefined : currentProfil;
+  renderCharts(p);
+});
 
 document.getElementById('ex').onclick = () => {
   const data = { version: 1, exported: new Date().toISOString(), profiles: SEED, box: BOX };
@@ -1011,7 +1132,7 @@ document.getElementById('go').onclick = () => {
 };
 
 /* ============================================================
-   IMPORT BOXSCORES (TEXTE ET EXCEL)
+   IMPORT BOXSCORES
    ============================================================ */
 document.getElementById('bpa').onclick = () => {
   const txt = document.getElementById('bta').value;
