@@ -163,6 +163,111 @@ h2.sec::before {
 .kt b { display: block; font-size: 28px; font-weight: 800; line-height: 1.1; color: var(--tx); }
 .kt span { color: var(--mut); font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; }
 
+/* ---- Top 5 picks dans les cartes KPI ---- */
+.kp .top-picks {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--bd);
+  position: relative;
+  z-index: 1;
+}
+.kp .tp-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--mut);
+  margin-bottom: 10px;
+}
+.kp .tp-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.kp .tp-row {
+  display: grid;
+  grid-template-columns: 22px 1fr auto auto;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  background: color-mix(in srgb, var(--c) 4%, var(--hl));
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  transition: background 0.15s, border-color 0.15s, transform 0.15s;
+}
+.kp .tp-row:hover {
+  background: color-mix(in srgb, var(--c) 10%, var(--hl));
+  border-color: color-mix(in srgb, var(--c) 30%, transparent);
+  transform: translateX(2px);
+}
+.kp .tp-rank {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 800;
+  background: var(--bd);
+  color: var(--tx);
+  flex-shrink: 0;
+}
+.kp .tp-row:nth-child(1) .tp-rank {
+  background: linear-gradient(135deg, #fbbf24, #f59e0b);
+  color: #fff;
+  box-shadow: 0 2px 6px rgba(245, 158, 11, 0.4);
+}
+.kp .tp-row:nth-child(2) .tp-rank {
+  background: linear-gradient(135deg, #d1d5db, #9ca3af);
+  color: #fff;
+}
+.kp .tp-row:nth-child(3) .tp-rank {
+  background: linear-gradient(135deg, #d97706, #b45309);
+  color: #fff;
+}
+.kp .tp-name-wrap {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.kp .tp-name {
+  font-weight: 600;
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.3;
+}
+.kp .tp-sub {
+  font-size: 11px;
+  color: var(--mut);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+.kp .tp-date {
+  font-size: 11px;
+  color: var(--mut);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.kp .tp-score {
+  font-weight: 800;
+  font-size: 13px;
+  padding: 3px 10px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--c) 18%, transparent);
+  color: var(--c);
+  font-variant-numeric: tabular-nums;
+  min-width: 40px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
 /* ============================================================
    GRAPHIQUES
    ============================================================ */
@@ -735,6 +840,13 @@ function updateNavActiveState() {
   });
 }
 
+function formatDateShort(iso) {
+  if (!iso) return '—';
+  const parts = String(iso).split('-');
+  if (parts.length !== 3) return iso;
+  return `${parts[2]}/${parts[1]}/${parts[0].slice(-2)}`;
+}
+
 function renderKPI(filtre) {
   const kp = document.getElementById('kp');
   kp.innerHTML = '';
@@ -753,6 +865,9 @@ function renderKPI(filtre) {
     const nb35 = valides.filter(x => x.s >= 35).length;
     const taux35 = Math.round(100 * nb35 / valides.length);
 
+    // Top 5 des meilleurs picks
+    const top5 = [...valides].sort((a,b) => (b.s||0) - (a.s||0)).slice(0, 5);
+
     const card = document.createElement('div');
     card.className = 'card kp';
     card.style.setProperty('--c', getUniqueColor(i, profils.length));
@@ -765,7 +880,39 @@ function renderKPI(filtre) {
         <div><b>${pires}</b><span>Pire</span></div>
         <div><b>${malusMoy.toFixed(1)}</b><span>Malus moy.</span></div>
         <div><b>${taux35}%</b><span>≥ 35 pts</span></div>
+      </div>
+      <div class="top-picks">
+        <div class="tp-title">🏆 Top 5 picks</div>
+        <div class="tp-list">
+          ${top5.map((x, idx) => `
+            <div class="tp-row" data-player="${(x.j || '').replace(/"/g, '&quot;')}"
+                 title="Filtrer sur ${x.j || 'ce joueur'}">
+              <div class="tp-rank">${idx + 1}</div>
+              <div class="tp-name-wrap">
+                <div class="tp-name">${x.j || '—'}</div>
+                ${x.l ? `<div class="tp-sub">${x.l}</div>` : ''}
+              </div>
+              <div class="tp-date">${formatDateShort(x.iso)}</div>
+              <div class="tp-score">${x.s}</div>
+            </div>
+          `).join('')}
+        </div>
       </div>`;
+
+    // Clic sur une ligne → filtre le tableau des joueurs sur ce joueur
+    card.querySelectorAll('.tp-row').forEach(row => {
+      row.style.cursor = 'pointer';
+      row.onclick = () => {
+        const player = row.dataset.player;
+        if (!player) return;
+        const q = document.getElementById('q');
+        q.value = player;
+        q.dispatchEvent(new Event('input'));
+        q.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        q.focus();
+      };
+    });
+
     kp.appendChild(card);
   });
 }
